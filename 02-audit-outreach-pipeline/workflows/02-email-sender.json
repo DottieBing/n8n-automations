@@ -1,0 +1,745 @@
+{
+  "name": "Ayo - Workflow 2 - Email Sender",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 9-18 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger-15min",
+      "name": "Trigger - Every 15 Mins (9AM-6PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "YOUR_ANTHROPIC_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "Ayo",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "pending"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "get-next-lead",
+      "name": "Get Next Pending Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-lead",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-has-lead",
+      "name": "Has Pending Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "={{ $json.has_cta }}",
+              "type": "string"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $json.rating }}",
+              "type": "string"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $json.review_count }}",
+              "type": "string"
+            },
+            {
+              "id": "photos_count",
+              "name": "photos_count",
+              "value": "={{ $json.photos_count }}",
+              "type": "string"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "owner_answers",
+              "name": "owner_answers",
+              "value": "={{ $json.owner_answers }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "town",
+              "name": "town",
+              "value": "={{ $json.town }}",
+              "type": "string"
+            },
+            {
+              "id": "state",
+              "name": "state",
+              "value": "={{ $json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "country",
+              "name": "country",
+              "value": "={{ $json.country }}",
+              "type": "string"
+            },
+            {
+              "id": "row_number",
+              "name": "row_number",
+              "value": "={{ $json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $('set-config').item.json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('set-config').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('set-config').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('set-config').item.json.sender_name }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-lead",
+      "name": "Prepare Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 4000,\n  \"system\": \"You are a sharp local business marketing analyst. Analyse this business and produce a detailed audit in JSON format.\\n\\nScoring (100 points total):\\n- Google Reviews Score (25pts): 0-10 reviews=5, 11-50=12, 51-200=18, 200+=25\\n- Review Rating (15pts): below 3=3, 3-3.9=8, 4-4.4=11, 4.5+=15\\n- Owner Response Rate (15pts): 0=0, 1-30%=5, 31-60%=10, 61-100%=15\\n- Photos Count (10pts): 0-5=2, 6-20=5, 21-50=8, 50+=10\\n- Website Quality (20pts): no CTA=8, has CTA=20\\n- Business Description (5pts): none=0, short=2, detailed=5\\n- Call Answering (10pts): always 3 — we attempted to call and got no answer\\n\\nCategory:\\n- needs_website: poor website, no CTA\\n- needs_ai_receptionist: busy business, likely missing calls\\n- needs_both: poor website AND likely missing calls\\n\\nReturn ONLY valid JSON with no extra text:\\n{\\\"category\\\": \\\"needs_website|needs_ai_receptionist|needs_both\\\", \\\"total_score\\\": 0, \\\"grade\\\": \\\"A|B|C|D|F\\\", \\\"scores\\\": {\\\"reviews_score\\\": 0, \\\"rating_score\\\": 0, \\\"response_rate_score\\\": 0, \\\"photos_score\\\": 0, \\\"website_score\\\": 0, \\\"description_score\\\": 0, \\\"call_score\\\": 3}, \\\"findings\\\": {\\\"reviews\\\": \\\"specific finding\\\", \\\"rating\\\": \\\"specific finding\\\", \\\"response_rate\\\": \\\"specific finding\\\", \\\"photos\\\": \\\"specific finding\\\", \\\"website\\\": \\\"specific finding\\\", \\\"description\\\": \\\"specific finding\\\", \\\"call_test\\\": \\\"We attempted to call [business] at [phone] and received no answer. Potential customers calling after hours or during busy periods are likely going to a competitor.\\\"}, \\\"recommendations\\\": {\\\"primary\\\": \\\"most important fix\\\", \\\"secondary\\\": \\\"second most important\\\", \\\"quick_wins\\\": [\\\"win 1\\\", \\\"win 2\\\", \\\"win 3\\\"]}, \\\"pain_points\\\": [\\\"pain 1\\\", \\\"pain 2\\\", \\\"pain 3\\\"], \\\"pitch_angle\\\": \\\"best one sentence pitch for this business\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyse:\\n\\nBusiness: {{ $json.business_name }}\\nType: {{ $json.category }}\\nTown: {{ $json.town }}\\nState: {{ $json.state }}\\nCountry: {{ $json.country }}\\nPhone: {{ $json.phone }}\\nWebsite: {{ $json.website }}\\nHas CTA: {{ $json.has_cta }}\\nRating: {{ $json.rating }} stars\\nReviews: {{ $json.review_count }}\\nOwner Responses: {{ $json.owner_answers }}\\nPhotos: {{ $json.photos_count }}\\nDescription: {{ $json.description || 'NONE' }}\\n\\nReturn ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-analyse",
+      "name": "Claude - Analyse Business",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "analysis",
+              "name": "analysis",
+              "value": "={{ (() => { try { const text = $json.content[0].text; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean); } catch(e) { return { category: 'needs_both', total_score: 30, grade: 'D', scores: {}, findings: { call_test: 'Call attempted, no answer.' }, recommendations: {}, pain_points: [], pitch_angle: '' }; } })() }}",
+              "type": "object"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('prepare-lead').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('prepare-lead').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('prepare-lead').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('prepare-lead').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "={{ $('prepare-lead').item.json.has_cta }}",
+              "type": "string"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $('prepare-lead').item.json.rating }}",
+              "type": "string"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $('prepare-lead').item.json.review_count }}",
+              "type": "string"
+            },
+            {
+              "id": "photos_count",
+              "name": "photos_count",
+              "value": "={{ $('prepare-lead').item.json.photos_count }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('prepare-lead').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "town",
+              "name": "town",
+              "value": "={{ $('prepare-lead').item.json.town }}",
+              "type": "string"
+            },
+            {
+              "id": "state",
+              "name": "state",
+              "value": "={{ $('prepare-lead').item.json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "country",
+              "name": "country",
+              "value": "={{ $('prepare-lead').item.json.country }}",
+              "type": "string"
+            },
+            {
+              "id": "row_number",
+              "name": "row_number",
+              "value": "={{ $('prepare-lead').item.json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $('prepare-lead').item.json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('prepare-lead').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('prepare-lead').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('prepare-lead').item.json.sender_name }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "parse-analysis",
+      "name": "Parse Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are Ayo, a sharp digital marketing consultant who helps local businesses get more customers. Write a cold email that feels like it was written personally for this one business.\\n\\nRules:\\n1. Subject line must create curiosity. NOT salesy. NEVER use dashes - or — in subject lines.\\n2. Open with something hyper-specific to THEIR business\\n3. Reference their real data — rating, reviews, location\\n4. Reference the failed call naturally — tried calling, no one picked up\\n5. ONE focused pain point\\n6. Offer free audit, no strings\\n7. ONE soft CTA — just reply yes\\n8. MAX 120 words\\n9. Human tone, not corporate\\n10. Sign off as Ayo\\n\\nFor needs_website: focus on what poor website is costing them\\nFor needs_ai_receptionist: focus on missed calls = missed revenue\\nFor needs_both: lead with missed call angle\\n\\nStyle WITH website: 'Hey [NAME], I was searching for [niche] in [town] and came across your business. You've got some really solid reviews. I noticed a few things on your google listing that could be costing you calls though. I put together a full breakdown if you'd like to see. No charge, No strings. Just thought it might help. — Ayo'\\n\\nStyle WITHOUT website: 'Hey [NAME], I was trying to find your website when searching for [niche] in [town] but couldn't find one. I know that's probably not at the top of your priority list when you're busy running your business, but it might be costing you more customers than you think. Happy to share what I found if you're open to it. — Ayo'\\n\\nThese are STYLE references only. Write something fresh and specific to THIS business.\\n\\nReturn ONLY valid JSON: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write cold email for:\\n\\nBusiness: {{ $json.business_name }}\\nNiche: {{ $json.niche }}\\nTown: {{ $json.town }}\\nState: {{ $json.state }}\\nCountry: {{ $json.country }}\\nPhone: {{ $json.phone }}\\nWebsite: {{ $json.website }}\\nHas CTA: {{ $json.has_cta }}\\nRating: {{ $json.rating }} stars ({{ $json.review_count }} reviews)\\nPhotos: {{ $json.photos_count }}\\nCategory: {{ $json.analysis.category }}\\nPitch Angle: {{ $json.analysis.pitch_angle }}\\nPain Points: {{ $json.analysis.pain_points }}\\nCall Finding: {{ $json.analysis.findings.call_test }}\\n\\nReturn ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-write-email",
+      "name": "Claude - Write Cold Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email_subject",
+              "name": "email_subject",
+              "value": "={{ (() => { try { const text = $json.content[0].text; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean).subject; } catch(e) { return 'Quick question about ' + $('parse-analysis').item.json.business_name; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "email_body",
+              "name": "email_body",
+              "value": "={{ (() => { try { const text = $json.content[0].text; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean).body; } catch(e) { return $json.content[0].text; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('parse-analysis').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('parse-analysis').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "total_score",
+              "name": "total_score",
+              "value": "={{ $('parse-analysis').item.json.analysis.total_score }}",
+              "type": "number"
+            },
+            {
+              "id": "grade",
+              "name": "grade",
+              "value": "={{ $('parse-analysis').item.json.analysis.grade }}",
+              "type": "string"
+            },
+            {
+              "id": "analysis_json",
+              "name": "analysis_json",
+              "value": "={{ JSON.stringify($('parse-analysis').item.json.analysis) }}",
+              "type": "string"
+            },
+            {
+              "id": "row_number",
+              "name": "row_number",
+              "value": "={{ $('parse-analysis').item.json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('parse-analysis').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('parse-analysis').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('parse-analysis').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $('parse-analysis').item.json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('parse-analysis').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "town",
+              "name": "town",
+              "value": "={{ $('parse-analysis').item.json.town }}",
+              "type": "string"
+            },
+            {
+              "id": "state",
+              "name": "state",
+              "value": "={{ $('parse-analysis').item.json.state }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-email",
+      "name": "Prepare Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "email_1_sent",
+            "email_subject": "={{ $json.email_subject }}",
+            "email_body": "={{ $json.email_body }}",
+            "total_score": "={{ $json.total_score }}",
+            "grade": "={{ $json.grade }}",
+            "analysis_json": "={{ $json.analysis_json }}",
+            "date_emailed": "={{ new Date().toISOString() }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-lead-status",
+      "name": "Update Lead Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('prepare-email').item.json.email }}",
+        "subject": "={{ $('prepare-email').item.json.email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('prepare-email').item.json.email_body }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('prepare-email').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-send",
+      "name": "Gmail - Send Cold Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2200,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Trigger - Every 15 Mins (9AM-6PM)": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Next Pending Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Next Pending Lead": {
+      "main": [
+        [
+          {
+            "node": "Has Pending Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending Lead?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Prepare Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Claude - Analyse Business",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Analyse Business": {
+      "main": [
+        [
+          {
+            "node": "Parse Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Analysis": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Cold Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Write Cold Email": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Status": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Cold Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "triggerCount": 1,
+  "active": false
+}

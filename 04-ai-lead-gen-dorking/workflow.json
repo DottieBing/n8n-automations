@@ -1,0 +1,1371 @@
+{
+  "name": "Ayo - AI Lead Gen v2 (Google Dorking)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Weekly Trigger (Monday 9AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "niches",
+              "name": "niches",
+              "value": "={{ [\n  { \"name\": \"dental clinic\", \"sheet\": \"dental clinic\", \"dork\": '\"dental clinic\" (\"book appointment\" OR \"contact us\" OR \"schedule\")' },\n  { \"name\": \"medical clinic\", \"sheet\": \"medical clinic\", \"dork\": '\"medical clinic\" (\"book appointment\" OR \"contact us\" OR \"schedule\")' },\n  { \"name\": \"hair salon\", \"sheet\": \"hair salon\", \"dork\": '\"hair salon\" (\"book now\" OR \"contact us\" OR \"appointments\")' },\n  { \"name\": \"HVAC company\", \"sheet\": \"HVAC company\", \"dork\": '\"HVAC\" (\"free estimate\" OR \"contact us\" OR \"24 hour service\")' },\n  { \"name\": \"plumber\", \"sheet\": \"plumber\", \"dork\": '\"plumbing\" (\"emergency\" OR \"contact us\" OR \"free estimate\")' },\n  { \"name\": \"law firm\", \"sheet\": \"law firm\", \"dork\": '\"law firm\" (\"free consultation\" OR \"contact us\" OR \"schedule a call\")' },\n  { \"name\": \"real estate agent\", \"sheet\": \"real estate agent\", \"dork\": '\"real estate\" (\"contact agent\" OR \"schedule showing\" OR \"book a call\")' },\n  { \"name\": \"gym\", \"sheet\": \"gym\", \"dork\": '\"gym\" OR \"fitness center\" (\"free trial\" OR \"contact us\" OR \"membership\")' },\n  { \"name\": \"restaurant\", \"sheet\": \"restaurant\", \"dork\": '\"restaurant\" (\"reservations\" OR \"contact us\" OR \"book a table\")' }\n] }}",
+              "type": "array"
+            },
+            {
+              "id": "countries",
+              "name": "countries",
+              "value": "={{ [\n  { \"name\": \"United States\", \"code\": \"us\", \"google\": \"google.com\", \"cities\": [\"New York\", \"Los Angeles\", \"Chicago\", \"Houston\", \"Phoenix\"] },\n  { \"name\": \"United Kingdom\", \"code\": \"uk\", \"google\": \"google.co.uk\", \"cities\": [\"London\", \"Manchester\", \"Birmingham\", \"Leeds\", \"Glasgow\"] },\n  { \"name\": \"Australia\", \"code\": \"au\", \"google\": \"google.com.au\", \"cities\": [\"Sydney\", \"Melbourne\", \"Brisbane\", \"Perth\", \"Adelaide\"] },\n  { \"name\": \"Canada\", \"code\": \"ca\", \"google\": \"google.ca\", \"cities\": [\"Toronto\", \"Vancouver\", \"Calgary\", \"Montreal\", \"Ottawa\"] }\n] }}",
+              "type": "array"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "Ayo",
+              "type": "string"
+            },
+            {
+              "id": "sender_full_name",
+              "name": "sender_full_name",
+              "value": "Ayobami Bolade",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "YOUR_COLD_EMAIL_HERE",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "YOUR_SCRAPINGBEE_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "YOUR_ANTHROPIC_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "niches",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-niches",
+      "name": "Split Into Niches",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "countries",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-countries",
+      "name": "Split Into Countries",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "cities",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-cities",
+      "name": "Split Into Cities",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "search_query",
+              "name": "search_query",
+              "value": "={{ $json.niches.dork + ' \"' + $json.countries.cities + '\"' + ' -site:yelp.com -site:yellowpages.com -site:tripadvisor.com -site:healthgrades.com -site:thumbtack.com -site:angi.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "google_domain",
+              "name": "google_domain",
+              "value": "={{ $json.countries.google }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_name",
+              "name": "niche_name",
+              "value": "={{ $json.niches.name }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_sheet",
+              "name": "niche_sheet",
+              "value": "={{ $json.niches.sheet }}",
+              "type": "string"
+            },
+            {
+              "id": "country_name",
+              "name": "country_name",
+              "value": "={{ $json.countries.name }}",
+              "type": "string"
+            },
+            {
+              "id": "city",
+              "name": "city",
+              "value": "={{ $json.countries.cities }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $json.sender_email }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "build-dork-query",
+      "name": "Build Dork Query",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://app.scrapingbee.com/api/v1/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $json.scrapingbee_key }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ 'https://www.' + $json.google_domain + '/search?q=' + encodeURIComponent($json.search_query) + '&num=5' }}"
+            },
+            {
+              "name": "render_js",
+              "value": "false"
+            },
+            {
+              "name": "extract_rules",
+              "value": "={{ JSON.stringify({ \"results\": { \"selector\": \"div.g\", \"type\": \"list\", \"output\": { \"title\": { \"selector\": \"h3\" }, \"url\": { \"selector\": \"a\", \"output\": \"@href\" }, \"snippet\": { \"selector\": \"div.VwiC3b\" } } } }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "scrapingbee-google-dork",
+      "name": "ScrapingBee - Google Dork Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "results",
+              "name": "results",
+              "value": "={{ (() => { try { if (Array.isArray($json.results)) { return $json.results.filter(r => r.url && r.url.startsWith('http') && !r.url.includes('google') && !r.url.includes('yelp') && !r.url.includes('yellowpages') && !r.url.includes('tripadvisor') && !r.url.includes('healthgrades') && !r.url.includes('facebook') && !r.url.includes('instagram') && !r.url.includes('linkedin')); } return []; } catch(e) { return []; } })() }}",
+              "type": "array"
+            },
+            {
+              "id": "niche_name",
+              "name": "niche_name",
+              "value": "={{ $('build-dork-query').item.json.niche_name }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_sheet",
+              "name": "niche_sheet",
+              "value": "={{ $('build-dork-query').item.json.niche_sheet }}",
+              "type": "string"
+            },
+            {
+              "id": "country_name",
+              "name": "country_name",
+              "value": "={{ $('build-dork-query').item.json.country_name }}",
+              "type": "string"
+            },
+            {
+              "id": "city",
+              "name": "city",
+              "value": "={{ $('build-dork-query').item.json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $('build-dork-query').item.json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $('build-dork-query').item.json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('build-dork-query').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('build-dork-query').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('build-dork-query').item.json.sender_email }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "parse-dork-results",
+      "name": "Parse & Filter Dork Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-results",
+              "leftValue": "={{ $json.results.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "filter-has-results",
+      "name": "Filter - Has Results",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-results",
+      "name": "Split Results",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://app.scrapingbee.com/api/v1/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $json.scrapingbee_key }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.results.url }}"
+            },
+            {
+              "name": "render_js",
+              "value": "false"
+            },
+            {
+              "name": "extract_rules",
+              "value": "={{ JSON.stringify({ \"emails\": { \"selector\": \"a[href^='mailto:']\", \"type\": \"list\", \"output\": \"@href\" }, \"business_name\": { \"selector\": \"title\" }, \"phone\": { \"selector\": \"a[href^='tel:']\", \"output\": \"@href\" } }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "scrapingbee-extract-email",
+      "name": "ScrapingBee - Extract Email & Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ (() => { const name = $json.business_name || $('split-results').item.json.results.title || ''; return name.replace(/[-|].*$/, '').trim(); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('split-results').item.json.results.url }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ (() => { try { const emails = $json.emails; if (Array.isArray(emails) && emails.length > 0) { return emails[0].replace('mailto:', '').trim().toLowerCase(); } return ''; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ (() => { try { const phone = $json.phone; if (phone) return phone.replace('tel:', '').trim(); return ''; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "snippet",
+              "name": "snippet",
+              "value": "={{ $('split-results').item.json.results.snippet || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_name",
+              "name": "niche_name",
+              "value": "={{ $('split-results').item.json.niche_name }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_sheet",
+              "name": "niche_sheet",
+              "value": "={{ $('split-results').item.json.niche_sheet }}",
+              "type": "string"
+            },
+            {
+              "id": "country_name",
+              "name": "country_name",
+              "value": "={{ $('split-results').item.json.country_name }}",
+              "type": "string"
+            },
+            {
+              "id": "city",
+              "name": "city",
+              "value": "={{ $('split-results').item.json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "={{ $('split-results').item.json.anthropic_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('split-results').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('split-results').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('split-results').item.json.sender_email }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "merge-lead-data",
+      "name": "Merge Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "valid-email-format",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "not-generic",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "noreply|no-reply|donotreply|webmaster@|postmaster@",
+              "operator": {
+                "type": "string",
+                "operation": "not",
+                "rightType": "regex"
+              }
+            },
+            {
+              "id": "has-business-name",
+              "leftValue": "={{ $json.business_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-valid-email",
+      "name": "Filter - Valid Email Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are an expert cold email copywriter who writes emails that get replies. You write on behalf of Ayo, who sells an AI phone agent to local businesses.\\n\\nThe AI Phone Agent:\\n- Answers ALL inbound calls 24/7, even at 3AM\\n- Books appointments automatically\\n- Answers FAQs about the business\\n- Follows up with leads who didn't convert\\n- Handles multiple calls simultaneously — no hold music, ever\\n- Sounds like a real, warm, friendly human\\n- Saves businesses from losing customers to missed calls\\n- Costs a fraction of hiring a full-time receptionist\\n\\nEmail writing rules:\\n1. Subject line — make it curiosity-driven, NOT salesy. They must feel they need to open it\\n2. Open with something hyper-specific to THEIR business — use their name, niche, city, or something from their website snippet\\n3. Identify ONE clear pain point they feel daily — missed calls = missed revenue\\n4. Present the solution briefly — don't over-explain, leave room for curiosity\\n5. ONE soft, low-friction CTA — a quick reply or a 10-minute call\\n6. Max 150 words for the body — shorter is always better\\n7. Conversational, human tone — NOT corporate, NOT robotic\\n8. Sign off as Ayo\\n\\nReturn ONLY a valid JSON object with these exact keys, nothing else:\\n{\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a cold email for this business:\\n\\nBusiness Name: {{ $json.business_name }}\\nNiche: {{ $json.niche_name }}\\nCity: {{ $json.city }}\\nCountry: {{ $json.country_name }}\\nWebsite: {{ $json.website }}\\nPhone: {{ $json.phone }}\\nWebsite Snippet: {{ $json.snippet }}\\n\\nUse these details to make it feel like Ayo personally researched this business. Reference something specific about them — their city, their niche, or something from the snippet. The goal is ONE reply.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-write-email",
+      "name": "Claude - Write Personalized Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email_subject",
+              "name": "email_subject",
+              "value": "={{ (() => { try { const parsed = JSON.parse($json.content[0].text); return parsed.subject; } catch(e) { return 'Quick question for ' + $('filter-valid-email').item.json.business_name; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "email_body",
+              "name": "email_body",
+              "value": "={{ (() => { try { const parsed = JSON.parse($json.content[0].text); return parsed.body; } catch(e) { return $json.content[0].text; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('filter-valid-email').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('filter-valid-email').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('filter-valid-email').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('filter-valid-email').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_name",
+              "name": "niche_name",
+              "value": "={{ $('filter-valid-email').item.json.niche_name }}",
+              "type": "string"
+            },
+            {
+              "id": "niche_sheet",
+              "name": "niche_sheet",
+              "value": "={{ $('filter-valid-email').item.json.niche_sheet }}",
+              "type": "string"
+            },
+            {
+              "id": "country_name",
+              "name": "country_name",
+              "value": "={{ $('filter-valid-email').item.json.country_name }}",
+              "type": "string"
+            },
+            {
+              "id": "city",
+              "name": "city",
+              "value": "={{ $('filter-valid-email').item.json.city }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('filter-valid-email').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('filter-valid-email').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('filter-valid-email').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "date_added",
+              "name": "date_added",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "email_1_sent",
+              "type": "string"
+            },
+            {
+              "id": "replied",
+              "name": "replied",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "follow_up_1_date",
+              "name": "follow_up_1_date",
+              "value": "={{ new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "follow_up_2_date",
+              "name": "follow_up_2_date",
+              "value": "={{ new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-lead-record",
+      "name": "Prepare Lead Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        3080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "={{ $json.niche_sheet }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "options": {}
+        },
+        "options": {}
+      },
+      "id": "google-sheets-log",
+      "name": "Google Sheets - Log Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        3300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.email_subject }}",
+        "emailType": "text",
+        "message": "={{ $json.email_body }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $json.sender_email }}"
+        }
+      },
+      "id": "gmail-send-email1",
+      "name": "Gmail - Send Email 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "id": "wait-3-days",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-lead-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "={{ $('prepare-lead-record').item.json.niche_sheet }}"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $('prepare-lead-record').item.json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-reply-1",
+      "name": "Check Reply Status (Day 3)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        3960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "not-replied",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-no-reply-1",
+      "name": "No Reply Yet? (Day 3)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('prepare-lead-record').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 512,\n  \"system\": \"You are an expert cold email copywriter. Write follow-up email #1 for someone who didn't reply to Ayo's first cold email about an AI phone agent for local businesses.\\n\\nRules:\\n1. Briefly acknowledge the first email without being pushy\\n2. Add ONE fresh angle — try a question like 'How many calls do you miss after hours?' or 'What happens when a customer calls and no one picks up?'\\n3. Keep it under 80 words — short is powerful\\n4. Friendly and human tone, not desperate\\n5. ONE soft CTA\\n6. Sign off as Ayo\\n\\nReturn ONLY a valid JSON object: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write follow-up #1 for:\\nBusiness: {{ $('prepare-lead-record').item.json.business_name }}\\nNiche: {{ $('prepare-lead-record').item.json.niche_name }}\\nCity: {{ $('prepare-lead-record').item.json.city }}\\nCountry: {{ $('prepare-lead-record').item.json.country_name }}\\nOriginal subject line: {{ $('prepare-lead-record').item.json.email_subject }}\\nFirst email sent 3 days ago, no reply yet.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-followup1",
+      "name": "Claude - Write Follow-up 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('prepare-lead-record').item.json.email }}",
+        "subject": "={{ (() => { try { return JSON.parse($json.content[0].text).subject; } catch(e) { return 'Re: ' + $('prepare-lead-record').item.json.email_subject; } })() }}",
+        "emailType": "text",
+        "message": "={{ (() => { try { return JSON.parse($json.content[0].text).body; } catch(e) { return $json.content[0].text; } })() }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('prepare-lead-record').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-followup1",
+      "name": "Gmail - Send Follow-up 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "id": "wait-4-days",
+      "name": "Wait 4 More Days (Day 7 Total)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-lead-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "={{ $('prepare-lead-record').item.json.niche_sheet }}"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $('prepare-lead-record').item.json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-reply-2",
+      "name": "Check Reply Status (Day 7)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        5060,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "still-no-reply",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-no-reply-2",
+      "name": "Still No Reply? (Day 7)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('prepare-lead-record').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 512,\n  \"system\": \"You are an expert cold email copywriter. Write the final breakup email (#2) for someone who never replied to 2 previous emails from Ayo about an AI phone agent.\\n\\nRules:\\n1. Use the breakup email style — tell them this is the last email, no pressure\\n2. Short, honest, slightly warm and human — maybe a touch of light humor\\n3. Leave the door open — they can reach out anytime if things change\\n4. Under 60 words — brevity is key here\\n5. Absolutely no hard sell\\n6. Sign off as Ayo\\n\\nReturn ONLY a valid JSON object: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write the final breakup email for:\\nBusiness: {{ $('prepare-lead-record').item.json.business_name }}\\nNiche: {{ $('prepare-lead-record').item.json.niche_name }}\\nCity: {{ $('prepare-lead-record').item.json.city }}\\nNo reply after 2 emails over 7 days.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-followup2",
+      "name": "Claude - Write Follow-up 2 (Breakup)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('prepare-lead-record').item.json.email }}",
+        "subject": "={{ (() => { try { return JSON.parse($json.content[0].text).subject; } catch(e) { return 'Last one from me — ' + $('prepare-lead-record').item.json.business_name; } })() }}",
+        "emailType": "text",
+        "message": "={{ (() => { try { return JSON.parse($json.content[0].text).body; } catch(e) { return $json.content[0].text; } })() }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('prepare-lead-record').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-followup2",
+      "name": "Gmail - Send Follow-up 2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        5720,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-lead-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "={{ $('prepare-lead-record').item.json.niche_sheet }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "sequence_complete"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $('prepare-lead-record').item.json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-status-complete",
+      "name": "Update Status - Sequence Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        5940,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly Trigger (Monday 9AM)": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Split Into Niches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Niches": {
+      "main": [
+        [
+          {
+            "node": "Split Into Countries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Countries": {
+      "main": [
+        [
+          {
+            "node": "Split Into Cities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Cities": {
+      "main": [
+        [
+          {
+            "node": "Build Dork Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dork Query": {
+      "main": [
+        [
+          {
+            "node": "ScrapingBee - Google Dork Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapingBee - Google Dork Search": {
+      "main": [
+        [
+          {
+            "node": "Parse & Filter Dork Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Filter Dork Results": {
+      "main": [
+        [
+          {
+            "node": "Filter - Has Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Has Results": {
+      "main": [
+        [
+          {
+            "node": "Split Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Results": {
+      "main": [
+        [
+          {
+            "node": "ScrapingBee - Extract Email & Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapingBee - Extract Email & Info": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Filter - Valid Email Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Valid Email Only": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Personalized Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Write Personalized Email": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lead Record": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Log Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Log Lead": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Email 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Email 1": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Days": {
+      "main": [
+        [
+          {
+            "node": "Check Reply Status (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reply Status (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "No Reply Yet? (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Reply Yet? (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Claude - Write Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Wait 4 More Days (Day 7 Total)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 4 More Days (Day 7 Total)": {
+      "main": [
+        [
+          {
+            "node": "Check Reply Status (Day 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reply Status (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Still No Reply? (Day 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still No Reply? (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Follow-up 2 (Breakup)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Claude - Write Follow-up 2 (Breakup)": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Follow-up 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Follow-up 2": {
+      "main": [
+        [
+          {
+            "node": "Update Status - Sequence Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [],
+  "triggerCount": 1,
+  "active": false
+}

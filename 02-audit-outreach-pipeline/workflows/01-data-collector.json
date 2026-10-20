@@ -1,0 +1,877 @@
+{
+  "name": "Ayo - Workflow 1 - Data Collector",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger-daily",
+      "name": "Daily Trigger (8AM Weekdays)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "apify_key",
+              "name": "apify_key",
+              "value": "YOUR_APIFY_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "YOUR_SCRAPINGBEE_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "niches",
+              "name": "niches",
+              "value": "={{ [\"dental clinic\", \"medical clinic\", \"hair salon\", \"HVAC company\", \"plumber\", \"law firm\", \"real estate agent\", \"gym\", \"restaurant\"] }}",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Progress"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id",
+              "lookupValue": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read-progress",
+      "name": "Read Progress",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "current_index",
+              "name": "current_index",
+              "value": "={{ parseInt($json.current_index) || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "current_niche_index",
+              "name": "current_niche_index",
+              "value": "={{ parseInt($json.current_niche_index) || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "apify_key",
+              "name": "apify_key",
+              "value": "={{ $('set-config').item.json.apify_key }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $('set-config').item.json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('set-config').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "niches",
+              "name": "niches",
+              "value": "={{ $('set-config').item.json.niches }}",
+              "type": "array"
+            },
+            {
+              "id": "all_locations",
+              "name": "all_locations",
+              "value": "={{ [\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Birmingham\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Montgomery\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Huntsville\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Mobile\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Tuscaloosa\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Hoover\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Dothan\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Auburn\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Decatur\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Madison\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Florence\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Gadsden\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Vestavia Hills\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Prattville\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Phenix City\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Alabaster\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Bessemer\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Enterprise\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Opelika\"},\n  {\"country\": \"United States\", \"state\": \"Alabama\", \"town\": \"Homewood\"},\n  {\"country\": \"United States\", \"state\": \"Alaska\", \"town\": \"Anchorage\"},\n  {\"country\": \"United States\", \"state\": \"Alaska\", \"town\": \"Fairbanks\"},\n  {\"country\": \"United States\", \"state\": \"Alaska\", \"town\": \"Juneau\"},\n  {\"country\": \"United States\", \"state\": \"Alaska\", \"town\": \"Sitka\"},\n  {\"country\": \"United States\", \"state\": \"Alaska\", \"town\": \"Ketchikan\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Phoenix\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Tucson\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Mesa\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Chandler\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Scottsdale\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Glendale\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Gilbert\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Tempe\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Peoria\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Surprise\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Yuma\"},\n  {\"country\": \"United States\", \"state\": \"Arizona\", \"town\": \"Flagstaff\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Little Rock\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Fort Smith\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Fayetteville\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Springdale\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Jonesboro\"},\n  {\"country\": \"United States\", \"state\": \"Arkansas\", \"town\": \"Conway\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Los Angeles\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"San Diego\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"San Jose\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"San Francisco\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Fresno\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Sacramento\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Long Beach\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Oakland\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Bakersfield\"},\n  {\"country\": \"United States\", \"state\": \"California\", \"town\": \"Anaheim\"},\n  {\"country\": \"United States\", \"state\": \"Colorado\", \"town\": \"Denver\"},\n  {\"country\": \"United States\", \"state\": \"Colorado\", \"town\": \"Colorado Springs\"},\n  {\"country\": \"United States\", \"state\": \"Colorado\", \"town\": \"Aurora\"},\n  {\"country\": \"United States\", \"state\": \"Colorado\", \"town\": \"Fort Collins\"},\n  {\"country\": \"United States\", \"state\": \"Colorado\", \"town\": \"Lakewood\"},\n  {\"country\": \"United States\", \"state\": \"Connecticut\", \"town\": \"Bridgeport\"},\n  {\"country\": \"United States\", \"state\": \"Connecticut\", \"town\": \"New Haven\"},\n  {\"country\": \"United States\", \"state\": \"Connecticut\", \"town\": \"Hartford\"},\n  {\"country\": \"United States\", \"state\": \"Connecticut\", \"town\": \"Stamford\"},\n  {\"country\": \"United States\", \"state\": \"Delaware\", \"town\": \"Wilmington\"},\n  {\"country\": \"United States\", \"state\": \"Delaware\", \"town\": \"Dover\"},\n  {\"country\": \"United States\", \"state\": \"Delaware\", \"town\": \"Newark\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Jacksonville\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Miami\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Tampa\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Orlando\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"St Petersburg\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Fort Lauderdale\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Tallahassee\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Cape Coral\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"Gainesville\"},\n  {\"country\": \"United States\", \"state\": \"Florida\", \"town\": \"West Palm Beach\"},\n  {\"country\": \"United States\", \"state\": \"Georgia\", \"town\": \"Atlanta\"},\n  {\"country\": \"United States\", \"state\": \"Georgia\", \"town\": \"Columbus\"},\n  {\"country\": \"United States\", \"state\": \"Georgia\", \"town\": \"Savannah\"},\n  {\"country\": \"United States\", \"state\": \"Georgia\", \"town\": \"Athens\"},\n  {\"country\": \"United States\", \"state\": \"Georgia\", \"town\": \"Macon\"},\n  {\"country\": \"United States\", \"state\": \"Hawaii\", \"town\": \"Honolulu\"},\n  {\"country\": \"United States\", \"state\": \"Hawaii\", \"town\": \"Hilo\"},\n  {\"country\": \"United States\", \"state\": \"Idaho\", \"town\": \"Boise\"},\n  {\"country\": \"United States\", \"state\": \"Idaho\", \"town\": \"Nampa\"},\n  {\"country\": \"United States\", \"state\": \"Idaho\", \"town\": \"Meridian\"},\n  {\"country\": \"United States\", \"state\": \"Illinois\", \"town\": \"Chicago\"},\n  {\"country\": \"United States\", \"state\": \"Illinois\", \"town\": \"Aurora\"},\n  {\"country\": \"United States\", \"state\": \"Illinois\", \"town\": \"Rockford\"},\n  {\"country\": \"United States\", \"state\": \"Illinois\", \"town\": \"Naperville\"},\n  {\"country\": \"United States\", \"state\": \"Illinois\", \"town\": \"Springfield\"},\n  {\"country\": \"United States\", \"state\": \"Indiana\", \"town\": \"Indianapolis\"},\n  {\"country\": \"United States\", \"state\": \"Indiana\", \"town\": \"Fort Wayne\"},\n  {\"country\": \"United States\", \"state\": \"Indiana\", \"town\": \"Evansville\"},\n  {\"country\": \"United States\", \"state\": \"Indiana\", \"town\": \"South Bend\"},\n  {\"country\": \"United States\", \"state\": \"Iowa\", \"town\": \"Des Moines\"},\n  {\"country\": \"United States\", \"state\": \"Iowa\", \"town\": \"Cedar Rapids\"},\n  {\"country\": \"United States\", \"state\": \"Iowa\", \"town\": \"Davenport\"},\n  {\"country\": \"United States\", \"state\": \"Kansas\", \"town\": \"Wichita\"},\n  {\"country\": \"United States\", \"state\": \"Kansas\", \"town\": \"Overland Park\"},\n  {\"country\": \"United States\", \"state\": \"Kansas\", \"town\": \"Topeka\"},\n  {\"country\": \"United States\", \"state\": \"Kentucky\", \"town\": \"Louisville\"},\n  {\"country\": \"United States\", \"state\": \"Kentucky\", \"town\": \"Lexington\"},\n  {\"country\": \"United States\", \"state\": \"Kentucky\", \"town\": \"Bowling Green\"},\n  {\"country\": \"United States\", \"state\": \"Louisiana\", \"town\": \"New Orleans\"},\n  {\"country\": \"United States\", \"state\": \"Louisiana\", \"town\": \"Baton Rouge\"},\n  {\"country\": \"United States\", \"state\": \"Louisiana\", \"town\": \"Shreveport\"},\n  {\"country\": \"United States\", \"state\": \"Maine\", \"town\": \"Portland\"},\n  {\"country\": \"United States\", \"state\": \"Maine\", \"town\": \"Lewiston\"},\n  {\"country\": \"United States\", \"state\": \"Maryland\", \"town\": \"Baltimore\"},\n  {\"country\": \"United States\", \"state\": \"Maryland\", \"town\": \"Frederick\"},\n  {\"country\": \"United States\", \"state\": \"Maryland\", \"town\": \"Annapolis\"},\n  {\"country\": \"United States\", \"state\": \"Massachusetts\", \"town\": \"Boston\"},\n  {\"country\": \"United States\", \"state\": \"Massachusetts\", \"town\": \"Worcester\"},\n  {\"country\": \"United States\", \"state\": \"Massachusetts\", \"town\": \"Springfield\"},\n  {\"country\": \"United States\", \"state\": \"Michigan\", \"town\": \"Detroit\"},\n  {\"country\": \"United States\", \"state\": \"Michigan\", \"town\": \"Grand Rapids\"},\n  {\"country\": \"United States\", \"state\": \"Michigan\", \"town\": \"Ann Arbor\"},\n  {\"country\": \"United States\", \"state\": \"Minnesota\", \"town\": \"Minneapolis\"},\n  {\"country\": \"United States\", \"state\": \"Minnesota\", \"town\": \"Saint Paul\"},\n  {\"country\": \"United States\", \"state\": \"Minnesota\", \"town\": \"Rochester\"},\n  {\"country\": \"United States\", \"state\": \"Mississippi\", \"town\": \"Jackson\"},\n  {\"country\": \"United States\", \"state\": \"Mississippi\", \"town\": \"Gulfport\"},\n  {\"country\": \"United States\", \"state\": \"Missouri\", \"town\": \"Kansas City\"},\n  {\"country\": \"United States\", \"state\": \"Missouri\", \"town\": \"Saint Louis\"},\n  {\"country\": \"United States\", \"state\": \"Missouri\", \"town\": \"Springfield\"},\n  {\"country\": \"United States\", \"state\": \"Montana\", \"town\": \"Billings\"},\n  {\"country\": \"United States\", \"state\": \"Montana\", \"town\": \"Missoula\"},\n  {\"country\": \"United States\", \"state\": \"Nebraska\", \"town\": \"Omaha\"},\n  {\"country\": \"United States\", \"state\": \"Nebraska\", \"town\": \"Lincoln\"},\n  {\"country\": \"United States\", \"state\": \"Nevada\", \"town\": \"Las Vegas\"},\n  {\"country\": \"United States\", \"state\": \"Nevada\", \"town\": \"Henderson\"},\n  {\"country\": \"United States\", \"state\": \"Nevada\", \"town\": \"Reno\"},\n  {\"country\": \"United States\", \"state\": \"New Hampshire\", \"town\": \"Manchester\"},\n  {\"country\": \"United States\", \"state\": \"New Hampshire\", \"town\": \"Nashua\"},\n  {\"country\": \"United States\", \"state\": \"New Jersey\", \"town\": \"Newark\"},\n  {\"country\": \"United States\", \"state\": \"New Jersey\", \"town\": \"Jersey City\"},\n  {\"country\": \"United States\", \"state\": \"New Jersey\", \"town\": \"Paterson\"},\n  {\"country\": \"United States\", \"state\": \"New Mexico\", \"town\": \"Albuquerque\"},\n  {\"country\": \"United States\", \"state\": \"New Mexico\", \"town\": \"Las Cruces\"},\n  {\"country\": \"United States\", \"state\": \"New Mexico\", \"town\": \"Santa Fe\"},\n  {\"country\": \"United States\", \"state\": \"New York\", \"town\": \"New York City\"},\n  {\"country\": \"United States\", \"state\": \"New York\", \"town\": \"Buffalo\"},\n  {\"country\": \"United States\", \"state\": \"New York\", \"town\": \"Rochester\"},\n  {\"country\": \"United States\", \"state\": \"New York\", \"town\": \"Syracuse\"},\n  {\"country\": \"United States\", \"state\": \"North Carolina\", \"town\": \"Charlotte\"},\n  {\"country\": \"United States\", \"state\": \"North Carolina\", \"town\": \"Raleigh\"},\n  {\"country\": \"United States\", \"state\": \"North Carolina\", \"town\": \"Greensboro\"},\n  {\"country\": \"United States\", \"state\": \"North Carolina\", \"town\": \"Durham\"},\n  {\"country\": \"United States\", \"state\": \"North Dakota\", \"town\": \"Fargo\"},\n  {\"country\": \"United States\", \"state\": \"North Dakota\", \"town\": \"Bismarck\"},\n  {\"country\": \"United States\", \"state\": \"Ohio\", \"town\": \"Columbus\"},\n  {\"country\": \"United States\", \"state\": \"Ohio\", \"town\": \"Cleveland\"},\n  {\"country\": \"United States\", \"state\": \"Ohio\", \"town\": \"Cincinnati\"},\n  {\"country\": \"United States\", \"state\": \"Ohio\", \"town\": \"Toledo\"},\n  {\"country\": \"United States\", \"state\": \"Oklahoma\", \"town\": \"Oklahoma City\"},\n  {\"country\": \"United States\", \"state\": \"Oklahoma\", \"town\": \"Tulsa\"},\n  {\"country\": \"United States\", \"state\": \"Oklahoma\", \"town\": \"Norman\"},\n  {\"country\": \"United States\", \"state\": \"Oregon\", \"town\": \"Portland\"},\n  {\"country\": \"United States\", \"state\": \"Oregon\", \"town\": \"Salem\"},\n  {\"country\": \"United States\", \"state\": \"Oregon\", \"town\": \"Eugene\"},\n  {\"country\": \"United States\", \"state\": \"Pennsylvania\", \"town\": \"Philadelphia\"},\n  {\"country\": \"United States\", \"state\": \"Pennsylvania\", \"town\": \"Pittsburgh\"},\n  {\"country\": \"United States\", \"state\": \"Pennsylvania\", \"town\": \"Allentown\"},\n  {\"country\": \"United States\", \"state\": \"Rhode Island\", \"town\": \"Providence\"},\n  {\"country\": \"United States\", \"state\": \"South Carolina\", \"town\": \"Columbia\"},\n  {\"country\": \"United States\", \"state\": \"South Carolina\", \"town\": \"Charleston\"},\n  {\"country\": \"United States\", \"state\": \"South Dakota\", \"town\": \"Sioux Falls\"},\n  {\"country\": \"United States\", \"state\": \"Tennessee\", \"town\": \"Nashville\"},\n  {\"country\": \"United States\", \"state\": \"Tennessee\", \"town\": \"Memphis\"},\n  {\"country\": \"United States\", \"state\": \"Tennessee\", \"town\": \"Knoxville\"},\n  {\"country\": \"United States\", \"state\": \"Tennessee\", \"town\": \"Chattanooga\"},\n  {\"country\": \"United States\", \"state\": \"Texas\", \"town\": \"Houston\"},\n  {\"country\": \"United States\", \"state\": \"Texas\", \"town\": \"San Antonio\"},\n  {\"country\": \"United States\", \"state\": \"Texas\", \"town\": \"Dallas\"},\n  {\"country\": \"United States\", \"state\": \"Texas\", \"town\": \"Austin\"},\n  {\"country\": \"United States\", \"state\": \"Texas\", \"town\": \"Fort Worth\"},\n  {\"country\": \"United States\", \"state\": \"Utah\", \"town\": \"Salt Lake City\"},\n  {\"country\": \"United States\", \"state\": \"Utah\", \"town\": \"Provo\"},\n  {\"country\": \"United States\", \"state\": \"Virginia\", \"town\": \"Virginia Beach\"},\n  {\"country\": \"United States\", \"state\": \"Virginia\", \"town\": \"Norfolk\"},\n  {\"country\": \"United States\", \"state\": \"Virginia\", \"town\": \"Richmond\"},\n  {\"country\": \"United States\", \"state\": \"Washington\", \"town\": \"Seattle\"},\n  {\"country\": \"United States\", \"state\": \"Washington\", \"town\": \"Spokane\"},\n  {\"country\": \"United States\", \"state\": \"Washington\", \"town\": \"Tacoma\"},\n  {\"country\": \"United States\", \"state\": \"West Virginia\", \"town\": \"Charleston\"},\n  {\"country\": \"United States\", \"state\": \"West Virginia\", \"town\": \"Huntington\"},\n  {\"country\": \"United States\", \"state\": \"Wisconsin\", \"town\": \"Milwaukee\"},\n  {\"country\": \"United States\", \"state\": \"Wisconsin\", \"town\": \"Madison\"},\n  {\"country\": \"United States\", \"state\": \"Wisconsin\", \"town\": \"Green Bay\"},\n  {\"country\": \"United States\", \"state\": \"Wyoming\", \"town\": \"Cheyenne\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"London\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Birmingham\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Manchester\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Leeds\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Liverpool\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Bristol\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Sheffield\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Nottingham\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Leicester\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Coventry\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Newcastle upon Tyne\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Southampton\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Oxford\"},\n  {\"country\": \"United Kingdom\", \"state\": \"England\", \"town\": \"Cambridge\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Scotland\", \"town\": \"Glasgow\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Scotland\", \"town\": \"Edinburgh\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Scotland\", \"town\": \"Aberdeen\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Wales\", \"town\": \"Cardiff\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Wales\", \"town\": \"Swansea\"},\n  {\"country\": \"United Kingdom\", \"state\": \"Northern Ireland\", \"town\": \"Belfast\"},\n  {\"country\": \"Australia\", \"state\": \"New South Wales\", \"town\": \"Sydney\"},\n  {\"country\": \"Australia\", \"state\": \"New South Wales\", \"town\": \"Newcastle\"},\n  {\"country\": \"Australia\", \"state\": \"New South Wales\", \"town\": \"Wollongong\"},\n  {\"country\": \"Australia\", \"state\": \"Victoria\", \"town\": \"Melbourne\"},\n  {\"country\": \"Australia\", \"state\": \"Victoria\", \"town\": \"Geelong\"},\n  {\"country\": \"Australia\", \"state\": \"Queensland\", \"town\": \"Brisbane\"},\n  {\"country\": \"Australia\", \"state\": \"Queensland\", \"town\": \"Gold Coast\"},\n  {\"country\": \"Australia\", \"state\": \"Queensland\", \"town\": \"Townsville\"},\n  {\"country\": \"Australia\", \"state\": \"Western Australia\", \"town\": \"Perth\"},\n  {\"country\": \"Australia\", \"state\": \"South Australia\", \"town\": \"Adelaide\"},\n  {\"country\": \"Australia\", \"state\": \"Tasmania\", \"town\": \"Hobart\"},\n  {\"country\": \"Australia\", \"state\": \"ACT\", \"town\": \"Canberra\"},\n  {\"country\": \"Canada\", \"state\": \"Ontario\", \"town\": \"Toronto\"},\n  {\"country\": \"Canada\", \"state\": \"Ontario\", \"town\": \"Ottawa\"},\n  {\"country\": \"Canada\", \"state\": \"Ontario\", \"town\": \"Hamilton\"},\n  {\"country\": \"Canada\", \"state\": \"Ontario\", \"town\": \"London\"},\n  {\"country\": \"Canada\", \"state\": \"Ontario\", \"town\": \"Mississauga\"},\n  {\"country\": \"Canada\", \"state\": \"British Columbia\", \"town\": \"Vancouver\"},\n  {\"country\": \"Canada\", \"state\": \"British Columbia\", \"town\": \"Victoria\"},\n  {\"country\": \"Canada\", \"state\": \"British Columbia\", \"town\": \"Kelowna\"},\n  {\"country\": \"Canada\", \"state\": \"Alberta\", \"town\": \"Calgary\"},\n  {\"country\": \"Canada\", \"state\": \"Alberta\", \"town\": \"Edmonton\"},\n  {\"country\": \"Canada\", \"state\": \"Quebec\", \"town\": \"Montreal\"},\n  {\"country\": \"Canada\", \"state\": \"Quebec\", \"town\": \"Quebec City\"},\n  {\"country\": \"Canada\", \"state\": \"Manitoba\", \"town\": \"Winnipeg\"},\n  {\"country\": \"Canada\", \"state\": \"Saskatchewan\", \"town\": \"Saskatoon\"},\n  {\"country\": \"Canada\", \"state\": \"Nova Scotia\", \"town\": \"Halifax\"}\n] }}",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "parse-progress",
+      "name": "Parse Progress",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "current_location",
+              "name": "current_location",
+              "value": "={{ $json.all_locations[$json.current_index] }}",
+              "type": "object"
+            },
+            {
+              "id": "current_niche",
+              "name": "current_niche",
+              "value": "={{ $json.niches[$json.current_niche_index] }}",
+              "type": "string"
+            },
+            {
+              "id": "next_niche_index",
+              "name": "next_niche_index",
+              "value": "={{ ($json.current_niche_index + 1) >= $json.niches.length ? 0 : $json.current_niche_index + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "next_location_index",
+              "name": "next_location_index",
+              "value": "={{ ($json.current_niche_index + 1) >= $json.niches.length ? (($json.current_index + 1) >= $json.all_locations.length ? 0 : $json.current_index + 1) : $json.current_index }}",
+              "type": "number"
+            },
+            {
+              "id": "current_index",
+              "name": "current_index",
+              "value": "={{ $json.current_index }}",
+              "type": "number"
+            },
+            {
+              "id": "current_niche_index",
+              "name": "current_niche_index",
+              "value": "={{ $json.current_niche_index }}",
+              "type": "number"
+            },
+            {
+              "id": "apify_key",
+              "name": "apify_key",
+              "value": "={{ $json.apify_key }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "all_locations",
+              "name": "all_locations",
+              "value": "={{ $json.all_locations }}",
+              "type": "array"
+            },
+            {
+              "id": "niches",
+              "name": "niches",
+              "value": "={{ $json.niches }}",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "get-current",
+      "name": "Get Current Location & Niche",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{ $json.apify_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"searchStringsArray\": [\"{{ $json.current_niche }} {{ $json.current_location.town }} {{ $json.current_location.state }} {{ $json.current_location.country }}\"],\n  \"maxCrawledPlacesPerSearch\": 10,\n  \"language\": \"en\",\n  \"exportPlaceUrls\": false,\n  \"includeHistogram\": false,\n  \"includeOpeningHours\": false,\n  \"includePeopleAlsoSearch\": false,\n  \"maxImages\": 0\n}",
+        "options": {
+          "timeout": 120000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "apify-scrape",
+      "name": "Apify - Scrape Google Maps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-website",
+              "leftValue": "={{ $json.website }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "has-title",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-has-website",
+      "name": "Filter - Has Website",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $json.address || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.phone || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $json.totalScore || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $json.reviewsCount || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "photos_count",
+              "name": "photos_count",
+              "value": "={{ $json.imagesCount || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.description || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "owner_answers",
+              "name": "owner_answers",
+              "value": "={{ $json.reviewsDistribution ? ($json.reviewsDistribution.ownerAnswered || 0) : 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $json.categoryName || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('get-current').item.json.current_niche }}",
+              "type": "string"
+            },
+            {
+              "id": "town",
+              "name": "town",
+              "value": "={{ $('get-current').item.json.current_location.town }}",
+              "type": "string"
+            },
+            {
+              "id": "state",
+              "name": "state",
+              "value": "={{ $('get-current').item.json.current_location.state }}",
+              "type": "string"
+            },
+            {
+              "id": "country",
+              "name": "country",
+              "value": "={{ $('get-current').item.json.current_location.country }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $('get-current').item.json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('get-current').item.json.google_sheet_id }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "extract-data",
+      "name": "Extract Business Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-rate-limit",
+      "name": "Wait 3 Seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://app.scrapingbee.com/api/v1/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $json.scrapingbee_key }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.website }}"
+            },
+            {
+              "name": "render_js",
+              "value": "false"
+            },
+            {
+              "name": "extract_rules",
+              "value": "={{ JSON.stringify({ \"emails\": { \"selector\": \"a[href*='mailto']\", \"type\": \"list\", \"output\": \"@href\" } }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "scrapingbee-email",
+      "name": "ScrapingBee - Extract Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ (() => { try { const emails = $json.emails; if (Array.isArray(emails) && emails.length > 0) { return emails[0].replace('mailto:', '').replace(/\\?.*$/, '').trim().toLowerCase(); } return ''; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "={{ $json.has_cta ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('extract-data').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $('extract-data').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('extract-data').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('extract-data').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $('extract-data').item.json.rating }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $('extract-data').item.json.review_count }}",
+              "type": "number"
+            },
+            {
+              "id": "photos_count",
+              "name": "photos_count",
+              "value": "={{ $('extract-data').item.json.photos_count }}",
+              "type": "number"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $('extract-data').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "owner_answers",
+              "name": "owner_answers",
+              "value": "={{ $('extract-data').item.json.owner_answers }}",
+              "type": "number"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $('extract-data').item.json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('extract-data').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "town",
+              "name": "town",
+              "value": "={{ $('extract-data').item.json.town }}",
+              "type": "string"
+            },
+            {
+              "id": "state",
+              "name": "state",
+              "value": "={{ $('extract-data').item.json.state }}",
+              "type": "string"
+            },
+            {
+              "id": "country",
+              "name": "country",
+              "value": "={{ $('extract-data').item.json.country }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('extract-data').item.json.google_sheet_id }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "valid-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "not-generic",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "noreply|no-reply|donotreply|webmaster@|postmaster@",
+              "operator": {
+                "type": "string",
+                "operation": "not",
+                "rightType": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-valid-email",
+      "name": "Filter - Valid Email Only",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business_name": "={{ $json.business_name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "website": "={{ $json.website }}",
+            "has_cta": "={{ $json.has_cta }}",
+            "address": "={{ $json.address }}",
+            "town": "={{ $json.town }}",
+            "state": "={{ $json.state }}",
+            "country": "={{ $json.country }}",
+            "niche": "={{ $json.niche }}",
+            "category": "={{ $json.category }}",
+            "rating": "={{ $json.rating }}",
+            "review_count": "={{ $json.review_count }}",
+            "photos_count": "={{ $json.photos_count }}",
+            "description": "={{ $json.description }}",
+            "owner_answers": "={{ $json.owner_answers }}",
+            "status": "pending",
+            "replied": "false",
+            "reply_sentiment": "",
+            "audit_sent": "false",
+            "date_added": "={{ new Date().toISOString() }}",
+            "date_emailed": "",
+            "followup_1_sent": "false",
+            "followup_2_sent": "false"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets-save",
+      "name": "Save to Qualified Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('get-current').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Progress"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "current_index": "={{ $('get-current').item.json.next_location_index }}",
+            "current_niche_index": "={{ $('get-current').item.json.next_niche_index }}",
+            "current_town": "={{ $('get-current').item.json.all_locations[$('get-current').item.json.next_location_index].town }}",
+            "current_state": "={{ $('get-current').item.json.all_locations[$('get-current').item.json.next_location_index].state }}",
+            "current_country": "={{ $('get-current').item.json.all_locations[$('get-current').item.json.next_location_index].country }}",
+            "current_niche": "={{ $('get-current').item.json.niches[$('get-current').item.json.next_niche_index] }}",
+            "last_run": "={{ new Date().toISOString() }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "id",
+              "lookupValue": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-progress",
+      "name": "Update Progress",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        2860,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Trigger (8AM Weekdays)": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Read Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Progress": {
+      "main": [
+        [
+          {
+            "node": "Parse Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Progress": {
+      "main": [
+        [
+          {
+            "node": "Get Current Location & Niche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Location & Niche": {
+      "main": [
+        [
+          {
+            "node": "Apify - Scrape Google Maps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify - Scrape Google Maps": {
+      "main": [
+        [
+          {
+            "node": "Filter - Has Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Has Website": {
+      "main": [
+        [
+          {
+            "node": "Extract Business Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Business Data": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Seconds": {
+      "main": [
+        [
+          {
+            "node": "ScrapingBee - Extract Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapingBee - Extract Email": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Filter - Valid Email Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Valid Email Only": {
+      "main": [
+        [
+          {
+            "node": "Save to Qualified Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Qualified Leads": {
+      "main": [
+        [
+          {
+            "node": "Update Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "triggerCount": 1,
+  "active": false
+}

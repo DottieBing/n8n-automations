@@ -1,0 +1,822 @@
+{
+  "name": "Ayo - Workflow 3 - Follow-up Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "trigger-daily",
+      "name": "Daily Trigger (9AM Weekdays)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "anthropic_key",
+              "name": "anthropic_key",
+              "value": "YOUR_ANTHROPIC_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "email_1_sent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-followup1-leads",
+      "name": "Get Email 1 Sent Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "3-days-passed",
+              "leftValue": "={{ Math.floor((new Date() - new Date($json.date_emailed)) / (1000 * 60 * 60 * 24)) }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "not-replied",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-followup1-ready",
+      "name": "Filter - 3 Days Passed No Reply",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('set-config').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 512,\n  \"system\": \"Write a short follow-up email for Ayo. Under 80 words. Human not pushy. Add ONE new angle. Reference the audit briefly. Soft CTA. No dashes in subject line. Sign as Ayo. Return ONLY valid JSON: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Follow-up #1 for {{ $json.business_name }}, a {{ $json.niche }} in {{ $json.town }}, {{ $json.state }}. Score: {{ $json.total_score }}/100. Original subject: {{ $json.email_subject }}. Sent 3 days ago, no reply. Return ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-followup1",
+      "name": "Claude - Write Follow-up 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ (() => { try { return JSON.parse($json.content[0].text).subject; } catch(e) { return 'Re: ' + $json.email_subject; } })() }}",
+        "emailType": "text",
+        "message": "={{ (() => { try { return JSON.parse($json.content[0].text).body; } catch(e) { return $json.content[0].text; } })() }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('set-config').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-followup1",
+      "name": "Gmail - Send Follow-up 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('set-config').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "followup_1_sent",
+            "followup_1_sent": "true"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-followup1",
+      "name": "Update - Follow-up 1 Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('set-config').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "status",
+              "lookupValue": "followup_1_sent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-followup2-leads",
+      "name": "Get Follow-up 1 Sent Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "7-days-passed",
+              "leftValue": "={{ Math.floor((new Date() - new Date($json.date_emailed)) / (1000 * 60 * 60 * 24)) }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "not-replied",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-followup2-ready",
+      "name": "Filter - 7 Days Passed No Reply",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        660,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('set-config').item.json.anthropic_key }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 512,\n  \"system\": \"Write a final breakup email for Ayo. Under 60 words. Warm, genuine, slightly self-aware. Leaves door completely open. No hard sell. No dashes in subject line. Sign as Ayo. Return ONLY valid JSON: {\\\"subject\\\": \\\"...\\\", \\\"body\\\": \\\"...\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Breakup email for {{ $json.business_name }}, a {{ $json.niche }} in {{ $json.town }}, {{ $json.state }}. No reply after 2 emails over 7 days. Score was {{ $json.total_score }}/100. Return ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-breakup",
+      "name": "Claude - Write Breakup Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ (() => { try { return JSON.parse($json.content[0].text).subject; } catch(e) { return 'Last one from me'; } })() }}",
+        "emailType": "text",
+        "message": "={{ (() => { try { return JSON.parse($json.content[0].text).body; } catch(e) { return $json.content[0].text; } })() }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('set-config').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-breakup",
+      "name": "Gmail - Send Breakup Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('set-config').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "sequence_complete",
+            "followup_2_sent": "true"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-complete",
+      "name": "Update - Sequence Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1320,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-reply-webhook",
+        "options": {}
+      },
+      "id": "reply-webhook",
+      "name": "Reply Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "wait-1-min",
+      "name": "Wait 1 Minute (Human Feel)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "=YOUR_GOOGLE_SHEET_ID_HERE"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.body.from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "find-lead",
+      "name": "Find Lead By Email",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "=YOUR_ANTHROPIC_API_KEY_HERE"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-5\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are Ayo's reply assistant. Analyse incoming email replies from business owners.\\n\\nSentiment:\\n- POSITIVE: Interested, asking questions, want to know more\\n- NEUTRAL: Non-committal, maybe, busy right now\\n- NEGATIVE: Not interested, unsubscribe, stop emailing\\n- READY: Want the audit now, ready to talk\\n\\nResponses:\\n- POSITIVE: Thank them, tell them you'll send audit shortly, build excitement\\n- NEUTRAL: Acknowledge their time, give ONE compelling reason to look at audit\\n- NEGATIVE: Apologise politely, wish them well\\n- READY: Express excitement, confirm sending audit, ask good time to chat\\n\\nUnder 100 words. Warm and human. Sign as Ayo.\\n\\nReturn ONLY valid JSON: {\\\"sentiment\\\": \\\"POSITIVE|NEUTRAL|NEGATIVE|READY\\\", \\\"reply\\\": \\\"...\\\", \\\"action\\\": \\\"send_audit|continue_sequence|stop_sequence|schedule_call\\\"}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Business: {{ $json.business_name }}\\nNiche: {{ $json.niche }}\\nTheir reply: {{ $('reply-webhook').item.json.body.message }}\\nOriginal subject: {{ $json.email_subject }}\\n\\nReturn ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-analyse-reply",
+      "name": "Claude - Analyse Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sentiment",
+              "name": "sentiment",
+              "value": "={{ (() => { try { return JSON.parse($json.content[0].text).sentiment; } catch(e) { return 'NEUTRAL'; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "suggested_reply",
+              "name": "suggested_reply",
+              "value": "={{ (() => { try { return JSON.parse($json.content[0].text).reply; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "action",
+              "name": "action",
+              "value": "={{ (() => { try { return JSON.parse($json.content[0].text).action; } catch(e) { return 'continue_sequence'; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('find-lead').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "their_email",
+              "name": "their_email",
+              "value": "={{ $('reply-webhook').item.json.body.from }}",
+              "type": "string"
+            },
+            {
+              "id": "their_reply",
+              "name": "their_reply",
+              "value": "={{ $('reply-webhook').item.json.body.message }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "parse-reply",
+      "name": "Parse Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        880,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "=YOUR_GOOGLE_SHEET_ID_HERE"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Qualified Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "replied": "true",
+            "reply_sentiment": "={{ $json.sentiment }}",
+            "status": "={{ $json.sentiment === 'NEGATIVE' ? 'opted_out' : $json.sentiment === 'READY' ? 'ready_for_audit' : $json.sentiment === 'POSITIVE' ? 'interested' : 'replied_followup_needed' }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.their_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-reply-status",
+      "name": "Update Reply Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1100,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "=YOUR_GOOGLE_SHEET_ID_HERE"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Review Queue"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business_name": "={{ $('parse-reply').item.json.business_name }}",
+            "their_email": "={{ $('parse-reply').item.json.their_email }}",
+            "their_reply": "={{ $('parse-reply').item.json.their_reply }}",
+            "sentiment": "={{ $('parse-reply').item.json.sentiment }}",
+            "suggested_reply": "={{ $('parse-reply').item.json.suggested_reply }}",
+            "action": "={{ $('parse-reply').item.json.action }}",
+            "reviewed": "false",
+            "timestamp": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "queue-review",
+      "name": "Queue For Your Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1320,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "={{ '🔔 ' + $('parse-reply').item.json.sentiment + ' reply from ' + $('parse-reply').item.json.business_name }}",
+        "emailType": "text",
+        "message": "=Hey Ayo! 👋\n\nYou got a {{ $('parse-reply').item.json.sentiment }} reply!\n\nBusiness: {{ $('parse-reply').item.json.business_name }}\nTheir message: {{ $('parse-reply').item.json.their_reply }}\n\nSuggested reply:\n{{ $('parse-reply').item.json.suggested_reply }}\n\nAction: {{ $('parse-reply').item.json.action }}\n\nCheck your Review Queue sheet to approve and send. 🔥",
+        "options": {
+          "senderName": "Ayo Workflow"
+        }
+      },
+      "id": "gmail-notify",
+      "name": "Gmail - Notify Ayo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        800
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Trigger (9AM Weekdays)": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Get Email 1 Sent Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Follow-up 1 Sent Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email 1 Sent Leads": {
+      "main": [
+        [
+          {
+            "node": "Filter - 3 Days Passed No Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - 3 Days Passed No Reply": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Write Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Update - Follow-up 1 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Follow-up 1 Sent Leads": {
+      "main": [
+        [
+          {
+            "node": "Filter - 7 Days Passed No Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - 7 Days Passed No Reply": {
+      "main": [
+        [
+          {
+            "node": "Claude - Write Breakup Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Write Breakup Email": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Breakup Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Breakup Email": {
+      "main": [
+        [
+          {
+            "node": "Update - Sequence Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Minute (Human Feel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Minute (Human Feel)": {
+      "main": [
+        [
+          {
+            "node": "Find Lead By Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Lead By Email": {
+      "main": [
+        [
+          {
+            "node": "Claude - Analyse Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Analyse Reply": {
+      "main": [
+        [
+          {
+            "node": "Parse Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reply": {
+      "main": [
+        [
+          {
+            "node": "Update Reply Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Reply Status": {
+      "main": [
+        [
+          {
+            "node": "Queue For Your Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue For Your Review": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Notify Ayo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "triggerCount": 2,
+  "active": false
+}

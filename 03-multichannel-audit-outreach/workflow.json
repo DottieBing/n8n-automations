@@ -1,0 +1,2457 @@
+{
+  "name": "Ayo - Local Business Audit & Multi-Channel Outreach v4 (Groq)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Weekly Trigger (Monday 9AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "niches",
+              "name": "niches",
+              "value": "={{ [\"dental clinic\", \"medical clinic\", \"hair salon\", \"HVAC company\", \"plumber\", \"law firm\", \"real estate agent\", \"gym\", \"restaurant\"] }}",
+              "type": "array"
+            },
+            {
+              "id": "locations",
+              "name": "locations",
+              "value": "={{ [\"New York USA\", \"Los Angeles USA\", \"Chicago USA\", \"London UK\", \"Manchester UK\", \"Sydney Australia\", \"Melbourne Australia\", \"Toronto Canada\", \"Vancouver Canada\"] }}",
+              "type": "array"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "Ayo",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "YOUR_EMAIL@example.com",
+              "type": "string"
+            },
+            {
+              "id": "serpapi_key",
+              "name": "serpapi_key",
+              "value": "YOUR_SERPAPI_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "YOUR_GROQ_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "YOUR_SCRAPINGBEE_API_KEY_HERE",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "YOUR_TWILIO_ACCOUNT_SID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "YOUR_TWILIO_AUTH_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "YOUR_TWILIO_PHONE_NUMBER_HERE",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "YOUR_WHATSAPP_NUMBER_HERE",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "set-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "niches",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-niches",
+      "name": "Split Into Niches",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "locations",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-locations",
+      "name": "Split Into Locations",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $json.serpapi_key }}"
+            },
+            {
+              "name": "engine",
+              "value": "google_maps"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.niches + ' ' + $json.locations }}"
+            },
+            {
+              "name": "type",
+              "value": "search"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "serpapi-maps",
+      "name": "SerpApi - Google Maps Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "local_results",
+        "options": {
+          "include": "allOtherFields"
+        }
+      },
+      "id": "split-results",
+      "name": "Split Results",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-name",
+              "leftValue": "={{ $json.local_results.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "has-phone",
+              "leftValue": "={{ $json.local_results.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-has-phone",
+      "name": "Filter - Has Phone & Name",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $json.local_results.title }}",
+              "type": "string"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $json.local_results.address || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.local_results.phone || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $json.local_results.website || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "has_website",
+              "name": "has_website",
+              "value": "={{ $json.local_results.website ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $json.local_results.rating || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $json.local_results.reviews || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.local_results.description || $json.local_results.type || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "hours",
+              "name": "hours",
+              "value": "={{ $json.local_results.hours || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $json.local_results.type || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('split-niches').item.json.niches }}",
+              "type": "string"
+            },
+            {
+              "id": "location",
+              "name": "location",
+              "value": "={{ $('split-locations').item.json.locations }}",
+              "type": "string"
+            },
+            {
+              "id": "serpapi_key",
+              "name": "serpapi_key",
+              "value": "={{ $('split-locations').item.json.serpapi_key }}",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "={{ $('split-locations').item.json.groq_key }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $('split-locations').item.json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('split-locations').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('split-locations').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('split-locations').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "={{ $('split-locations').item.json.twilio_account_sid }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "={{ $('split-locations').item.json.twilio_auth_token }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "={{ $('split-locations').item.json.twilio_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "={{ $('split-locations').item.json.your_whatsapp }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "extract-business-data",
+      "name": "Extract Business Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-website",
+              "leftValue": "={{ $json.has_website }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-has-website",
+      "name": "Has Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-scrapingbee",
+      "name": "Wait 3 Seconds (Rate Limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://app.scrapingbee.com/api/v1/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $json.scrapingbee_key }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.website }}"
+            },
+            {
+              "name": "render_js",
+              "value": "false"
+            },
+            {
+              "name": "extract_rules",
+              "value": "={{ JSON.stringify({ \"emails\": { \"selector\": \"a[href^='mailto:']\", \"type\": \"list\", \"output\": \"@href\" }, \"has_cta\": { \"selector\": \"a[href*='book'], a[href*='appointment'], a[href*='contact'], button\" }, \"page_title\": { \"selector\": \"title\" } }) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "scrapingbee-website",
+      "name": "ScrapingBee - Find Email on Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ (() => { try { const emails = $json.emails; if (Array.isArray(emails) && emails.length > 0) { return emails[0].replace('mailto:', '').trim().toLowerCase(); } return ''; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "={{ $json.has_cta ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('extract-business-data').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $('extract-business-data').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('extract-business-data').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('extract-business-data').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "has_website",
+              "name": "has_website",
+              "value": "={{ $('extract-business-data').item.json.has_website }}",
+              "type": "boolean"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $('extract-business-data').item.json.rating }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $('extract-business-data').item.json.review_count }}",
+              "type": "number"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $('extract-business-data').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "hours",
+              "name": "hours",
+              "value": "={{ $('extract-business-data').item.json.hours }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $('extract-business-data').item.json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('extract-business-data').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "location",
+              "name": "location",
+              "value": "={{ $('extract-business-data').item.json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "={{ $('extract-business-data').item.json.groq_key }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $('extract-business-data').item.json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('extract-business-data').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('extract-business-data').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('extract-business-data').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "={{ $('extract-business-data').item.json.twilio_account_sid }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "={{ $('extract-business-data').item.json.twilio_auth_token }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "={{ $('extract-business-data').item.json.twilio_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "={{ $('extract-business-data').item.json.your_whatsapp }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "merge-website-data",
+      "name": "Merge Website Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        2420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email",
+              "name": "email",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "has_website",
+              "name": "has_website",
+              "value": "false",
+              "type": "boolean"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $json.rating }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $json.review_count }}",
+              "type": "number"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "hours",
+              "name": "hours",
+              "value": "={{ $json.hours }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "location",
+              "name": "location",
+              "value": "={{ $json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "={{ $json.groq_key }}",
+              "type": "string"
+            },
+            {
+              "id": "scrapingbee_key",
+              "name": "scrapingbee_key",
+              "value": "={{ $json.scrapingbee_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "={{ $json.twilio_account_sid }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "={{ $json.twilio_auth_token }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "={{ $json.twilio_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "={{ $json.your_whatsapp }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "no-website-data",
+      "name": "No Website - Set Empty Email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1980,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-all-data",
+      "name": "Merge All Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.groq_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 2000,\n  \"temperature\": 0.3,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a sharp local business marketing analyst. Analyse a business and return a detailed audit in JSON format.\\n\\nScoring (100 points total):\\n- Google Reviews Score (25pts): 0-10 reviews=5, 11-50=12, 51-200=18, 200+=25\\n- Review Rating (15pts): below 3=3, 3-3.9=8, 4-4.4=11, 4.5+=15\\n- Owner Response Rate (15pts): unknown=5 default\\n- Photos Count (10pts): unknown=3 default\\n- Website Quality (20pts): no website=0, has website but no CTA=8, has website with CTA=20\\n- Business Description (5pts): none=0, short=2, detailed=5\\n- Call Answering (10pts): always 3pts — we attempted to call and got no answer\\n\\nCategory rules:\\n- needs_website: no website or poor website\\n- needs_ai_receptionist: likely missing calls\\n- needs_both: no website AND likely missing calls\\n\\nReturn ONLY valid JSON with no extra text or markdown:\\n{\\\"category\\\": \\\"needs_website|needs_ai_receptionist|needs_both\\\", \\\"total_score\\\": 0, \\\"grade\\\": \\\"A|B|C|D|F\\\", \\\"scores\\\": {\\\"reviews_score\\\": 0, \\\"rating_score\\\": 0, \\\"response_rate_score\\\": 5, \\\"photos_score\\\": 3, \\\"website_score\\\": 0, \\\"description_score\\\": 0, \\\"call_score\\\": 3}, \\\"findings\\\": {\\\"reviews\\\": \\\"specific finding\\\", \\\"rating\\\": \\\"specific finding\\\", \\\"response_rate\\\": \\\"specific finding\\\", \\\"website\\\": \\\"specific finding\\\", \\\"description\\\": \\\"specific finding\\\", \\\"call_test\\\": \\\"We attempted to call [business] at [phone] and received no answer. Customers calling after hours or during busy periods are likely going to a competitor.\\\"}, \\\"recommendations\\\": {\\\"primary\\\": \\\"most important fix\\\", \\\"secondary\\\": \\\"second most important\\\", \\\"quick_wins\\\": [\\\"win 1\\\", \\\"win 2\\\", \\\"win 3\\\"]}, \\\"pain_points\\\": [\\\"pain 1\\\", \\\"pain 2\\\", \\\"pain 3\\\"], \\\"pitch_angle\\\": \\\"best one sentence pitch for this business\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Analyse this business:\\n\\nBusiness: {{ $json.business_name }}\\nType: {{ $json.category }}\\nLocation: {{ $json.location }}\\nPhone: {{ $json.phone }}\\nWebsite: {{ $json.website || 'NONE' }}\\nHas CTA: {{ $json.has_cta }}\\nRating: {{ $json.rating }} stars\\nReviews: {{ $json.review_count }}\\nHours: {{ $json.hours || 'Not listed' }}\\nDescription: {{ $json.description || 'NONE' }}\\n\\nReturn ONLY the JSON object, no other text.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "groq-analyse",
+      "name": "Groq - Analyse Business",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "analysis",
+              "name": "analysis",
+              "value": "={{ (() => { try { const text = $json.choices[0].message.content; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean); } catch(e) { return { category: 'needs_both', total_score: 30, grade: 'D', scores: {}, findings: { call_test: 'Call attempted, no answer.' }, recommendations: {}, pain_points: [], pitch_angle: '' }; } })() }}",
+              "type": "object"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('merge-all-data').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('merge-all-data').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('merge-all-data').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('merge-all-data').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "has_website",
+              "name": "has_website",
+              "value": "={{ $('merge-all-data').item.json.has_website }}",
+              "type": "boolean"
+            },
+            {
+              "id": "has_cta",
+              "name": "has_cta",
+              "value": "={{ $('merge-all-data').item.json.has_cta }}",
+              "type": "boolean"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $('merge-all-data').item.json.rating }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $('merge-all-data').item.json.review_count }}",
+              "type": "number"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $('merge-all-data').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "description",
+              "name": "description",
+              "value": "={{ $('merge-all-data').item.json.description }}",
+              "type": "string"
+            },
+            {
+              "id": "hours",
+              "name": "hours",
+              "value": "={{ $('merge-all-data').item.json.hours }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('merge-all-data').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "location",
+              "name": "location",
+              "value": "={{ $('merge-all-data').item.json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "={{ $('merge-all-data').item.json.groq_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('merge-all-data').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('merge-all-data').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('merge-all-data').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "={{ $('merge-all-data').item.json.twilio_account_sid }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "={{ $('merge-all-data').item.json.twilio_auth_token }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "={{ $('merge-all-data').item.json.twilio_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "={{ $('merge-all-data').item.json.your_whatsapp }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "parse-analysis",
+      "name": "Parse Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        3080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.groq_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 1024,\n  \"temperature\": 0.7,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are Ayo, a digital marketing consultant who helps local businesses get more customers. Write a cold email AND SMS that feel personal, human and impossible to ignore.\\n\\nCold email rules:\\n1. Open with something hyper specific to THEIR business\\n2. Show you actually researched them — mention something real\\n3. Reference the failed call attempt naturally — most powerful hook\\n4. ONE clear pain point\\n5. Offer the free audit with no strings\\n6. MAX 120 words\\n7. Human tone — NOT corporate\\n8. Sign as Ayo\\n9. Subject line must create curiosity — NOT salesy\\n\\nSMS rules:\\n1. MAX 160 characters total\\n2. Ultra casual and human\\n3. Reference the missed call\\n4. ONE soft question\\n5. Sign as — Ayo\\n\\nWith website: focus on what's costing them calls\\nWithout website: focus on invisible customer loss\\nNeeds both: lead with missed call\\n\\nReturn ONLY valid JSON with no extra text:\\n{\\\"email_subject\\\": \\\"...\\\", \\\"email_body\\\": \\\"...\\\", \\\"sms_body\\\": \\\"...\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write cold email AND SMS for:\\n\\nBusiness: {{ $json.business_name }}\\nNiche: {{ $json.niche }}\\nLocation: {{ $json.location }}\\nPhone: {{ $json.phone }}\\nWebsite: {{ $json.website || 'NONE' }}\\nHas Website: {{ $json.has_website }}\\nRating: {{ $json.rating }} stars ({{ $json.review_count }} reviews)\\nHours: {{ $json.hours || 'Not listed' }}\\nCategory: {{ $json.analysis.category }}\\nPitch Angle: {{ $json.analysis.pitch_angle }}\\nPain Points: {{ $json.analysis.pain_points }}\\nCall Finding: {{ $json.analysis.findings.call_test }}\\n\\nEmail style WITH website: 'Hey [NAME], I was searching for [niche] in [location] and came across your business. You've got some really solid reviews. I noticed a few things on your google listing that could be costing you calls though. I put together a full breakdown if you'd like to see. No charge, No strings. Just thought it might help. — Ayo'\\n\\nEmail style WITHOUT website: 'Hey [NAME], I was trying to find your website when searching for [niche] in [location] but couldn't find one. I know that's probably not at the top of your priority list when you're busy running your business, but it might be costing you more customers than you think. Happy to share what I found if you're open to it. — Ayo'\\n\\nSMS style: 'Hey, tried calling [Business] earlier but no one picked up. Noticed a few things that might be costing you customers. Worth a quick look? — Ayo'\\n\\nThese are STYLE references only. Write something fresh and specific to THIS business. Return ONLY the JSON object.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "groq-write-outreach",
+      "name": "Groq - Write Email & SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "email_subject",
+              "name": "email_subject",
+              "value": "={{ (() => { try { const text = $json.choices[0].message.content; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean).email_subject; } catch(e) { return 'Quick question about ' + $('parse-analysis').item.json.business_name; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "email_body",
+              "name": "email_body",
+              "value": "={{ (() => { try { const text = $json.choices[0].message.content; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean).email_body; } catch(e) { return $json.choices[0].message.content; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "sms_body",
+              "name": "sms_body",
+              "value": "={{ (() => { try { const text = $json.choices[0].message.content; const clean = text.replace(/```json|```/g, '').trim(); return JSON.parse(clean).sms_body; } catch(e) { return 'Hey, tried calling earlier but no one picked up. Noticed a few things that might be costing you customers. Worth a quick look? — Ayo'; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('parse-analysis').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('parse-analysis').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('parse-analysis').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "={{ $('parse-analysis').item.json.website }}",
+              "type": "string"
+            },
+            {
+              "id": "has_website",
+              "name": "has_website",
+              "value": "={{ $('parse-analysis').item.json.has_website }}",
+              "type": "boolean"
+            },
+            {
+              "id": "rating",
+              "name": "rating",
+              "value": "={{ $('parse-analysis').item.json.rating }}",
+              "type": "number"
+            },
+            {
+              "id": "review_count",
+              "name": "review_count",
+              "value": "={{ $('parse-analysis').item.json.review_count }}",
+              "type": "number"
+            },
+            {
+              "id": "address",
+              "name": "address",
+              "value": "={{ $('parse-analysis').item.json.address }}",
+              "type": "string"
+            },
+            {
+              "id": "hours",
+              "name": "hours",
+              "value": "={{ $('parse-analysis').item.json.hours }}",
+              "type": "string"
+            },
+            {
+              "id": "niche",
+              "name": "niche",
+              "value": "={{ $('parse-analysis').item.json.niche }}",
+              "type": "string"
+            },
+            {
+              "id": "location",
+              "name": "location",
+              "value": "={{ $('parse-analysis').item.json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $('parse-analysis').item.json.analysis.category }}",
+              "type": "string"
+            },
+            {
+              "id": "total_score",
+              "name": "total_score",
+              "value": "={{ $('parse-analysis').item.json.analysis.total_score }}",
+              "type": "number"
+            },
+            {
+              "id": "grade",
+              "name": "grade",
+              "value": "={{ $('parse-analysis').item.json.analysis.grade }}",
+              "type": "string"
+            },
+            {
+              "id": "analysis_json",
+              "name": "analysis_json",
+              "value": "={{ JSON.stringify($('parse-analysis').item.json.analysis) }}",
+              "type": "string"
+            },
+            {
+              "id": "groq_key",
+              "name": "groq_key",
+              "value": "={{ $('parse-analysis').item.json.groq_key }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "={{ $('parse-analysis').item.json.google_sheet_id }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_name",
+              "name": "sender_name",
+              "value": "={{ $('parse-analysis').item.json.sender_name }}",
+              "type": "string"
+            },
+            {
+              "id": "sender_email",
+              "name": "sender_email",
+              "value": "={{ $('parse-analysis').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_account_sid",
+              "name": "twilio_account_sid",
+              "value": "={{ $('parse-analysis').item.json.twilio_account_sid }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_auth_token",
+              "name": "twilio_auth_token",
+              "value": "={{ $('parse-analysis').item.json.twilio_auth_token }}",
+              "type": "string"
+            },
+            {
+              "id": "twilio_phone",
+              "name": "twilio_phone",
+              "value": "={{ $('parse-analysis').item.json.twilio_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "your_whatsapp",
+              "name": "your_whatsapp",
+              "value": "={{ $('parse-analysis').item.json.your_whatsapp }}",
+              "type": "string"
+            },
+            {
+              "id": "date_added",
+              "name": "date_added",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "pending_send",
+              "type": "string"
+            },
+            {
+              "id": "replied",
+              "name": "replied",
+              "value": "false",
+              "type": "string"
+            },
+            {
+              "id": "reply_sentiment",
+              "name": "reply_sentiment",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "audit_sent",
+              "name": "audit_sent",
+              "value": "false",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "prepare-record",
+      "name": "Prepare Full Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        3520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business_name": "={{ $json.business_name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "website": "={{ $json.website }}",
+            "has_website": "={{ $json.has_website }}",
+            "address": "={{ $json.address }}",
+            "location": "={{ $json.location }}",
+            "niche": "={{ $json.niche }}",
+            "rating": "={{ $json.rating }}",
+            "review_count": "={{ $json.review_count }}",
+            "hours": "={{ $json.hours }}",
+            "category": "={{ $json.category }}",
+            "total_score": "={{ $json.total_score }}",
+            "grade": "={{ $json.grade }}",
+            "analysis_json": "={{ $json.analysis_json }}",
+            "email_subject": "={{ $json.email_subject }}",
+            "email_body": "={{ $json.email_body }}",
+            "sms_body": "={{ $json.sms_body }}",
+            "status": "={{ $json.status }}",
+            "replied": "={{ $json.replied }}",
+            "reply_sentiment": "={{ $json.reply_sentiment }}",
+            "audit_sent": "={{ $json.audit_sent }}",
+            "date_added": "={{ $json.date_added }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheets-log",
+      "name": "Google Sheets - Log Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        3740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 20,
+        "unit": "minutes"
+      },
+      "id": "wait-20-mins",
+      "name": "Wait 20 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{ $('prepare-record').item.json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-has-email",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('prepare-record').item.json.email }}",
+        "subject": "={{ $('prepare-record').item.json.email_subject }}",
+        "emailType": "text",
+        "message": "={{ $('prepare-record').item.json.email_body }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('prepare-record').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-send-email1",
+      "name": "Gmail - Send Email 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('prepare-record').item.json.twilio_account_sid }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "={{ $('prepare-record').item.json.phone }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $('prepare-record').item.json.twilio_phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $('prepare-record').item.json.sms_body }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "twilio-send-sms",
+      "name": "Twilio - Send SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "outreach_sent"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $('prepare-record').item.json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-sent",
+      "name": "Update Status - Outreach Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        4620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "id": "wait-3-days",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $('prepare-record').item.json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-reply-1",
+      "name": "Check Reply (Day 3)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        5060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "not-replied",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-no-reply-1",
+      "name": "No Reply? (Day 3)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('prepare-record').item.json.groq_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 300,\n  \"temperature\": 0.7,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Write a short SMS follow-up for Ayo. Under 160 characters, casual, human, reference missed call, end with soft question. Sign as — Ayo. Return ONLY valid JSON with no extra text: {\\\"sms_body\\\": \\\"...\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"SMS follow-up #1 for {{ $('prepare-record').item.json.business_name }}, a {{ $('prepare-record').item.json.niche }} in {{ $('prepare-record').item.json.location }}. Score: {{ $('prepare-record').item.json.total_score }}/100. First message sent 3 days ago, no reply. Return ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "groq-followup1",
+      "name": "Groq - Write SMS Follow-up 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('prepare-record').item.json.twilio_account_sid }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "={{ $('prepare-record').item.json.phone }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $('prepare-record').item.json.twilio_phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).sms_body; } catch(e) { return 'Hey, just following up. Still happy to share what I found about your business. Worth a look? — Ayo'; } })() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "twilio-followup1",
+      "name": "Twilio - Send SMS Follow-up 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5720,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "id": "wait-4-days",
+      "name": "Wait 4 More Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5940,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $('prepare-record').item.json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-reply-2",
+      "name": "Check Reply (Day 7)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        6160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "still-no-reply",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "if-no-reply-2",
+      "name": "Still No Reply? (Day 7)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('prepare-record').item.json.groq_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 400,\n  \"temperature\": 0.7,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Write a final breakup email AND SMS for Ayo. Email under 80 words, warm, genuine, leaves door open. SMS under 160 chars, casual, no hard sell. Sign as Ayo. Return ONLY valid JSON with no extra text: {\\\"email_subject\\\": \\\"...\\\", \\\"email_body\\\": \\\"...\\\", \\\"sms_body\\\": \\\"...\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Final breakup for {{ $('prepare-record').item.json.business_name }}, a {{ $('prepare-record').item.json.niche }} in {{ $('prepare-record').item.json.location }}. No reply after 2 attempts over 7 days. Score: {{ $('prepare-record').item.json.total_score }}/100. Return ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "groq-breakup",
+      "name": "Groq - Write Breakup Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6600,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('prepare-record').item.json.email }}",
+        "subject": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).email_subject; } catch(e) { return 'Last one from me'; } })() }}",
+        "emailType": "text",
+        "message": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).email_body; } catch(e) { return $json.choices[0].message.content; } })() }}",
+        "options": {
+          "senderName": "Ayo",
+          "replyTo": "={{ $('prepare-record').item.json.sender_email }}"
+        }
+      },
+      "id": "gmail-breakup",
+      "name": "Gmail - Send Breakup Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        6820,
+        50
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('prepare-record').item.json.twilio_account_sid }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "={{ $('prepare-record').item.json.phone }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $('prepare-record').item.json.twilio_phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).sms_body; } catch(e) { return 'Last message from me — no worries if timing is off. Door is always open. — Ayo'; } })() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "onError": "continueRegularOutput"
+      },
+      "id": "twilio-breakup",
+      "name": "Twilio - Send Breakup SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6820,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $('prepare-record').item.json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "sequence_complete_no_reply"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $('prepare-record').item.json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-complete",
+      "name": "Update - Sequence Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        7040,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twilio-reply-webhook",
+        "options": {}
+      },
+      "id": "twilio-webhook",
+      "name": "Twilio Reply Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "wait-1-min",
+      "name": "Wait 1 Minute (Human Feel)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "mode": "id",
+          "value": "=YOUR_GOOGLE_SHEET_ID_HERE"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.body.From }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "find-lead",
+      "name": "Find Lead By Phone",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        440,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer YOUR_GROQ_API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"max_tokens\": 500,\n  \"temperature\": 0.5,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are Ayo's intelligent reply assistant. Analyse incoming SMS replies from local business owners.\\n\\nSentiment categories:\\n- POSITIVE: Interested, asking questions, want to know more\\n- NEUTRAL: Non-committal, maybe, busy right now\\n- NEGATIVE: Not interested, stop texting, remove me\\n- READY: Want to see the audit immediately, ready to talk\\n\\nResponse rules:\\n- POSITIVE: Thank them warmly, tell them you'll send a quick audit, ask for their email if not known\\n- NEUTRAL: Acknowledge busy schedule, mention it only takes 2 minutes, soft nudge toward audit\\n- NEGATIVE: Apologise politely, wish them well\\n- READY: Confirm sending audit now, ask for email if not known\\n\\nKeep responses under 160 characters. Warm and human. Sign as — Ayo\\n\\nReturn ONLY valid JSON with no extra text:\\n{\\\"sentiment\\\": \\\"POSITIVE|NEUTRAL|NEGATIVE|READY\\\", \\\"reply\\\": \\\"...\\\", \\\"action\\\": \\\"send_audit|continue_sequence|stop_sequence|get_email\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Business: {{ $json.business_name }}\\nNiche: {{ $json.niche }}\\nTheir reply: {{ $('twilio-webhook').item.json.body.Body }}\\nOriginal SMS sent: {{ $json.sms_body }}\\n\\nReturn ONLY the JSON.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "groq-reply",
+      "name": "Groq - Analyse Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sentiment",
+              "name": "sentiment",
+              "value": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).sentiment; } catch(e) { return 'NEUTRAL'; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "suggested_reply",
+              "name": "suggested_reply",
+              "value": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).reply; } catch(e) { return ''; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "action",
+              "name": "action",
+              "value": "={{ (() => { try { return JSON.parse($json.choices[0].message.content).action; } catch(e) { return 'continue_sequence'; } })() }}",
+              "type": "string"
+            },
+            {
+              "id": "business_name",
+              "name": "business_name",
+              "value": "={{ $('find-lead').item.json.business_name }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('twilio-webhook').item.json.body.From }}",
+              "type": "string"
+            },
+            {
+              "id": "their_reply",
+              "name": "their_reply",
+              "value": "={{ $('twilio-webhook').item.json.body.Body }}",
+              "type": "string"
+            },
+            {
+              "id": "google_sheet_id",
+              "name": "google_sheet_id",
+              "value": "=YOUR_GOOGLE_SHEET_ID_HERE",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "parse-reply",
+      "name": "Parse Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        880,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "mode": "id",
+          "value": "={{ $json.google_sheet_id }}"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "replied": "true",
+            "reply_sentiment": "={{ $json.sentiment }}",
+            "status": "={{ $json.sentiment === 'NEGATIVE' ? 'opted_out' : $json.sentiment === 'READY' ? 'ready_for_audit' : 'replied_needs_followup' }}"
+          }
+        },
+        "where": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-reply",
+      "name": "Update Reply Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1100,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "id",
+          "value": "=YOUR_GOOGLE_SHEET_ID_HERE"
+        },
+        "sheetName": {
+          "mode": "name",
+          "value": "Review Queue"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business_name": "={{ $('parse-reply').item.json.business_name }}",
+            "phone": "={{ $('parse-reply').item.json.phone }}",
+            "their_reply": "={{ $('parse-reply').item.json.their_reply }}",
+            "sentiment": "={{ $('parse-reply').item.json.sentiment }}",
+            "suggested_reply": "={{ $('parse-reply').item.json.suggested_reply }}",
+            "action": "={{ $('parse-reply').item.json.action }}",
+            "reviewed": "false",
+            "timestamp": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "queue-review",
+      "name": "Queue For Your Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1320,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "=🔔 New Reply from {{ $('parse-reply').item.json.business_name }}",
+        "emailType": "text",
+        "message": "=Hey Ayo, you just got a reply!\n\nBusiness: {{ $('parse-reply').item.json.business_name }}\nTheir message: {{ $('parse-reply').item.json.their_reply }}\nSentiment: {{ $('parse-reply').item.json.sentiment }}\n\nSuggested reply:\n{{ $('parse-reply').item.json.suggested_reply }}\n\nAction needed: {{ $('parse-reply').item.json.action }}\n\nCheck your Review Queue sheet to approve and send.",
+        "options": {
+          "senderName": "Ayo Workflow"
+        }
+      },
+      "id": "gmail-notify",
+      "name": "Gmail - Notify Ayo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Weekly Trigger (Monday 9AM)": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Split Into Niches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Niches": {
+      "main": [
+        [
+          {
+            "node": "Split Into Locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Locations": {
+      "main": [
+        [
+          {
+            "node": "SerpApi - Google Maps Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpApi - Google Maps Search": {
+      "main": [
+        [
+          {
+            "node": "Split Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Results": {
+      "main": [
+        [
+          {
+            "node": "Filter - Has Phone & Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Has Phone & Name": {
+      "main": [
+        [
+          {
+            "node": "Extract Business Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Business Data": {
+      "main": [
+        [
+          {
+            "node": "Has Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Website?": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Seconds (Rate Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Website - Set Empty Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Seconds (Rate Limit)": {
+      "main": [
+        [
+          {
+            "node": "ScrapingBee - Find Email on Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapingBee - Find Email on Website": {
+      "main": [
+        [
+          {
+            "node": "Merge Website Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Website Data": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Website - Set Empty Email": {
+      "main": [
+        [
+          {
+            "node": "Merge All Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Data": {
+      "main": [
+        [
+          {
+            "node": "Groq - Analyse Business",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Analyse Business": {
+      "main": [
+        [
+          {
+            "node": "Parse Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Analysis": {
+      "main": [
+        [
+          {
+            "node": "Groq - Write Email & SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Write Email & SMS": {
+      "main": [
+        [
+          {
+            "node": "Prepare Full Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Full Record": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Log Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Log Lead": {
+      "main": [
+        [
+          {
+            "node": "Wait 20 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 20 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Email 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twilio - Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Email 1": {
+      "main": [
+        [
+          {
+            "node": "Twilio - Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio - Send SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Status - Outreach Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Outreach Sent": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 Days": {
+      "main": [
+        [
+          {
+            "node": "Check Reply (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reply (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "No Reply? (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Reply? (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "Groq - Write SMS Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Groq - Write SMS Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Twilio - Send SMS Follow-up 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio - Send SMS Follow-up 1": {
+      "main": [
+        [
+          {
+            "node": "Wait 4 More Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 4 More Days": {
+      "main": [
+        [
+          {
+            "node": "Check Reply (Day 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reply (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Still No Reply? (Day 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still No Reply? (Day 7)": {
+      "main": [
+        [
+          {
+            "node": "Groq - Write Breakup Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Groq - Write Breakup Messages": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Breakup Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Breakup Email": {
+      "main": [
+        [
+          {
+            "node": "Twilio - Send Breakup SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio - Send Breakup SMS": {
+      "main": [
+        [
+          {
+            "node": "Update - Sequence Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio Reply Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Minute (Human Feel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Minute (Human Feel)": {
+      "main": [
+        [
+          {
+            "node": "Find Lead By Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Lead By Phone": {
+      "main": [
+        [
+          {
+            "node": "Groq - Analyse Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Analyse Reply": {
+      "main": [
+        [
+          {
+            "node": "Parse Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reply": {
+      "main": [
+        [
+          {
+            "node": "Update Reply Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Reply Status": {
+      "main": [
+        [
+          {
+            "node": "Queue For Your Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue For Your Review": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Notify Ayo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [],
+  "triggerCount": 2,
+  "active": false
+}

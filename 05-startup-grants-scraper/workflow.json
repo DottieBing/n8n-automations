@@ -1,0 +1,565 @@
+{
+  "name": "Startup Grants & Opportunities Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "keywords",
+              "name": "keywords",
+              "value": "={{ ['startup grant', 'pitch', 'accelerator', 'ideathon', 'hackathon'] }}",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "id": "set-keywords",
+      "name": "Set Keywords",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "startup grant OR pitch OR accelerator OR ideathon OR hackathon"
+            },
+            {
+              "name": "sort",
+              "value": "new"
+            },
+            {
+              "name": "limit",
+              "value": "25"
+            },
+            {
+              "name": "type",
+              "value": "link"
+            },
+            {
+              "name": "t",
+              "value": "day"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-grants-bot/1.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "reddit-search",
+      "name": "Reddit Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://hn.algolia.com/api/v1/search_by_date",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "startup grant OR pitch OR accelerator OR ideathon OR hackathon"
+            },
+            {
+              "name": "tags",
+              "value": "story"
+            },
+            {
+              "name": "hitsPerPage",
+              "value": "25"
+            },
+            {
+              "name": "numericFilters",
+              "value": "created_at_i>={{ Math.floor(Date.now()/1000) - 21600 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hackernews-search",
+      "name": "HackerNews Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.producthunt.com/v2/api/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_PRODUCTHUNT_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"query\": \"{ posts(first: 20, order: NEWEST) { edges { node { id name tagline url createdAt topics { edges { node { name } } } } } } }\"\n}",
+        "options": {}
+      },
+      "id": "producthunt-search",
+      "name": "Product Hunt Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst redditRaw = items[0].json;\nconst results = [];\n\nconst keywords = ['startup grant', 'pitch', 'accelerator', 'ideathon', 'hackathon'];\n\nfunction containsKeyword(text) {\n  if (!text) return false;\n  const lower = text.toLowerCase();\n  return keywords.some(kw => lower.includes(kw));\n}\n\nfunction extractDate(text) {\n  if (!text) return 'Not found';\n  const patterns = [\n    /deadline[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /closes?[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /due[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /apply by[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /ends?[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/,\n    /([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/\n  ];\n  for (const pattern of patterns) {\n    const match = text.match(pattern);\n    if (match) return match[1] || match[0];\n  }\n  return 'Not found';\n}\n\nfunction extractLink(text) {\n  if (!text) return 'Not found';\n  const urlPattern = /https?:\\/\\/[^\\s\\)\\]]+/g;\n  const urls = text.match(urlPattern);\n  if (urls) {\n    const filtered = urls.filter(u => !u.includes('reddit.com') && !u.includes('redd.it'));\n    return filtered.length > 0 ? filtered[0] : (urls[0] || 'Not found');\n  }\n  return 'Not found';\n}\n\n// Process Reddit\ntry {\n  const posts = redditRaw?.data?.children || [];\n  for (const post of posts) {\n    const d = post.data;\n    const combined = `${d.title || ''} ${d.selftext || ''}`;\n    if (containsKeyword(combined)) {\n      results.push({\n        date_found: new Date().toISOString(),\n        platform: 'Reddit',\n        post_url: `https://reddit.com${d.permalink}`,\n        grant_link: extractLink(d.selftext || d.url || ''),\n        title: d.title || '',\n        start_date: 'Not found',\n        deadline: extractDate(combined),\n        author: d.author || '',\n        summary: (d.selftext || d.title || '').substring(0, 300)\n      });\n    }\n  }\n} catch(e) {}\n\nreturn results.map(r => ({ json: r }));"
+      },
+      "id": "parse-reddit",
+      "name": "Parse Reddit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst hnRaw = items[0].json;\nconst results = [];\n\nconst keywords = ['startup grant', 'pitch', 'accelerator', 'ideathon', 'hackathon'];\n\nfunction containsKeyword(text) {\n  if (!text) return false;\n  const lower = text.toLowerCase();\n  return keywords.some(kw => lower.includes(kw));\n}\n\nfunction extractDate(text) {\n  if (!text) return 'Not found';\n  const patterns = [\n    /deadline[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /closes?[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /due[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /apply by[:\\s]+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/i,\n    /(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/,\n    /([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})/\n  ];\n  for (const pattern of patterns) {\n    const match = text.match(pattern);\n    if (match) return match[1] || match[0];\n  }\n  return 'Not found';\n}\n\ntry {\n  const hits = hnRaw?.hits || [];\n  for (const hit of hits) {\n    const combined = `${hit.title || ''} ${hit.story_text || ''}`;\n    if (containsKeyword(combined)) {\n      results.push({\n        date_found: new Date().toISOString(),\n        platform: 'HackerNews',\n        post_url: hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`,\n        grant_link: hit.url || 'Not found',\n        title: hit.title || '',\n        start_date: 'Not found',\n        deadline: extractDate(combined),\n        author: hit.author || '',\n        summary: (hit.story_text || hit.title || '').substring(0, 300)\n      });\n    }\n  }\n} catch(e) {}\n\nreturn results.map(r => ({ json: r }));"
+      },
+      "id": "parse-hackernews",
+      "name": "Parse HackerNews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst phRaw = items[0].json;\nconst results = [];\n\nconst keywords = ['startup grant', 'pitch', 'accelerator', 'ideathon', 'hackathon'];\n\nfunction containsKeyword(text) {\n  if (!text) return false;\n  const lower = text.toLowerCase();\n  return keywords.some(kw => lower.includes(kw));\n}\n\ntry {\n  const posts = phRaw?.data?.posts?.edges || [];\n  for (const edge of posts) {\n    const p = edge.node;\n    const combined = `${p.name || ''} ${p.tagline || ''}`;\n    const topics = (p.topics?.edges || []).map(t => t.node.name).join(', ');\n    if (containsKeyword(combined) || containsKeyword(topics)) {\n      results.push({\n        date_found: new Date().toISOString(),\n        platform: 'Product Hunt',\n        post_url: p.url || '',\n        grant_link: p.url || 'Not found',\n        title: p.name || '',\n        start_date: 'Not found',\n        deadline: 'Not found',\n        author: '',\n        summary: p.tagline || ''\n      });\n    }\n  }\n} catch(e) {}\n\nreturn results.map(r => ({ json: r }));"
+      },
+      "id": "parse-producthunt",
+      "name": "Parse Product Hunt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "id": "merge-results",
+      "name": "Merge All Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": {
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "filtersUI": {},
+        "options": {}
+      },
+      "id": "get-existing-rows",
+      "name": "Get Existing Sheet Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all new results\nconst allItems = $('Merge All Results').all();\n\n// Get existing rows from sheet to deduplicate\nconst existingRows = $('Get Existing Sheet Rows').all();\nconst existingUrls = new Set(\n  existingRows.map(r => r.json.post_url || r.json['Post URL'] || '').filter(Boolean)\n);\n\n// Filter out duplicates\nconst newItems = allItems.filter(item => {\n  const url = item.json.post_url;\n  if (!url || existingUrls.has(url)) return false;\n  return true;\n});\n\nif (newItems.length === 0) {\n  return [{ json: { skipped: true, message: 'No new items found' } }];\n}\n\nreturn newItems;"
+      },
+      "id": "deduplicate",
+      "name": "Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-not-skipped",
+              "leftValue": "={{ $json.skipped }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-new-items",
+      "name": "Has New Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date Found": "={{ $json.date_found }}",
+            "Platform": "={{ $json.platform }}",
+            "Post URL": "={{ $json.post_url }}",
+            "Grant / Resource Link": "={{ $json.grant_link }}",
+            "Title": "={{ $json.title }}",
+            "Start Date": "={{ $json.start_date }}",
+            "Deadline": "={{ $json.deadline }}",
+            "Author": "={{ $json.author }}",
+            "Summary": "={{ $json.summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date Found",
+              "displayName": "Date Found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Platform",
+              "displayName": "Platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Post URL",
+              "displayName": "Post URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Grant / Resource Link",
+              "displayName": "Grant / Resource Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Deadline",
+              "displayName": "Deadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Author",
+              "displayName": "Author",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "write-to-sheets",
+      "name": "Write to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Set Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Keywords": {
+      "main": [
+        [
+          {
+            "node": "Reddit Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HackerNews Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Product Hunt Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reddit Search": {
+      "main": [
+        [
+          {
+            "node": "Parse Reddit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HackerNews Search": {
+      "main": [
+        [
+          {
+            "node": "Parse HackerNews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Hunt Search": {
+      "main": [
+        [
+          {
+            "node": "Parse Product Hunt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reddit": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse HackerNews": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parse Product Hunt": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge All Results": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "Has New Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Items?": {
+      "main": [
+        [
+          {
+            "node": "Write to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": [
+    "grants",
+    "automation",
+    "scraper"
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-01T00:00:00.000Z",
+  "active": false
+}
